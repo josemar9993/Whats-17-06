@@ -1,4 +1,4 @@
-require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
+require('dotenv').config();
 
 const fs = require('fs');
 const path = require('path');
@@ -19,7 +19,7 @@ const saveDailyChats = () => {
     return;
   }
   const todayStr = new Date().toISOString().slice(0, 10);
-  const filePath = path.resolve(__dirname, `../chats_salvos/chats-${todayStr}.json`);
+  const filePath = path.resolve(__dirname, `./chats_salvos/chats-${todayStr}.json`);
   const dir = path.dirname(filePath);
 
   if (!fs.existsSync(dir)) {
@@ -58,7 +58,7 @@ process.on('uncaughtException', (err, origin) => {
   console.error(err);
   console.error(`\n==============================\n`);
   try {
-    const logsDir = pathSync.join(__dirname, '../logs');
+    const logsDir = pathSync.join(__dirname, 'logs');
     if (!fsSync.existsSync(logsDir)) fsSync.mkdirSync(logsDir, { recursive: true });
     fsSync.appendFileSync(pathSync.join(logsDir, 'exceptions.log'), `[${new Date().toISOString()}] Origin: ${origin}\n${err.stack || err}\n\n`);
   } catch (logErr) {
@@ -74,7 +74,7 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Motivo do Rejection:', reason);
   console.error(`\n===============================\n`);
   try {
-    const logsDir = pathSync.join(__dirname, '../logs');
+    const logsDir = pathSync.join(__dirname, 'logs');
     if (!fsSync.existsSync(logsDir)) fsSync.mkdirSync(logsDir, { recursive: true });
     fsSync.appendFileSync(pathSync.join(logsDir, 'rejections.log'), `[${new Date().toISOString()}] Reason: ${String(reason)}\n\n`);
   } catch (logErr) {

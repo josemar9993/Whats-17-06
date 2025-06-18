@@ -1,0 +1,41 @@
+# Dependências do Node.js
+/node_modules
+
+# Dados de sessão e cache do WhatsApp
+/auth_data
+/.wwebjs_auth
+/.wwebjs_cache
+
+# Logs
+/logs/
+*.log
+
+# Arquivos de ambiente (contém senhas)
+.env
+.env.*
+!.env.example
+.env
+.env.*
+!.env.example
+
+# Pastas de build ou dados temporários
+/data
+
+# Arquivos específicos de sistema operacional
+.DS_Store
+Thumbs.db
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Service account keys (NUNCA comite chaves de conta de serviço!)
+*.json # Seja mais específico se tiver outros JSONs que DEVEM ser comitados
+# Exemplo mais específico:
+# service-account-key.json
+# *credentials*.json
+
+# PM2
+*.pid
+*.launch

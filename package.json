@@ -1,0 +1,62 @@
+{
+  "name": "meu-bot-whatsapp",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp com resumo de conversas e armazenamento em JSON.",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "stop": "pm2 stop meu-bot-whatsapp",
+    "restart": "pm2 restart meu-bot-whatsapp --update-env",
+    "delete": "pm2 delete meu-bot-whatsapp",
+    "logs": "pm2 logs meu-bot-whatsapp",
+    "test": "NODE_ENV=test node src/emailer.js",
+    "gcp-build": "gcloud builds submit --config cloudbuild.yaml .",
+    "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
+    "docker:run-local": "docker run -it --rm -v \"%CD%/auth_data\":/app/auth_data -v \"%CD%/logs\":/app/logs --name meu-bot-local meu-bot-whatsapp-local:latest",
+    "docker:check-wwebjs": "docker run --rm meu-bot-whatsapp-local:latest node -e \"try { console.log(Object.keys(require('whatsapp-web.js'))); } catch (e) { console.error('Erro ao carregar whatsapp-web.js:', e); }\"",
+    "docker:stop-local": "(docker stop meu-bot-local && docker rm -f meu-bot-local) || echo \"Contêiner 'meu-bot-local' não encontrado ou já parado.\"",
+    "docker:test-local": "npm run docker:stop-local && npm run docker:build-local && npm run docker:run-local"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "openai",
+    "summary"
+  ],
+  "author": "josemar9993",
+  "license": "MIT",
+  "homepage": "https://github.com/josemar9993/Whats-17-06#readme",
+  "private": true,
+  "dependencies": {
+    "@google-cloud/storage": "^7.0.0",
+    "compromise": "^13.11.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.9.9",
+    "pm2": "^5.3.0",
+    "qrcode-terminal": "^0.12.0",
+    "quickchart-js": "^3.1.0",
+    "remove-accents": "^0.5.0",
+    "sentiment": "^5.0.2",
+    "whatsapp-web.js": "^1.23.0",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.3"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "files": [
+    "src",
+    "ecosystem.config.js",
+    "Dockerfile",
+    "cloudbuild.yaml",
+    ".gcloudignore",
+    "LICENSE",
+    "README.md"
+  ]
+}

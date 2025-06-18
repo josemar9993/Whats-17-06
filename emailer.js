@@ -3,7 +3,7 @@
 // Importações necessárias
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+require('dotenv').config();
 const nodemailer = require('nodemailer');
 
 /**
@@ -94,7 +94,7 @@ async function testEmail() {
  * Supondo que cada dia esteja em um arquivo src/chats_salvos/chats-YYYY-MM-DD.json
  */
 function loadChatsByDate(dateStr) {
-  const filePath = path.resolve(__dirname, `../chats_salvos/chats-${dateStr}.json`);
+  const filePath = path.resolve(__dirname, `./chats_salvos/chats-${dateStr}.json`);
   if (fs.existsSync(filePath)) {
     try {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
