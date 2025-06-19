@@ -16,4 +16,4 @@ RUN npm install --omit=dev --no-cache
 COPY . .
 RUN mkdir -p /app/auth_data /app/logs && chown -R node:node /app
 USER node
-CMD ["node", "src/index.js"]
+CMD ["node", "index.js"]
