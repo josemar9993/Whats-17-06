@@ -82,11 +82,6 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-// const { Client, LocalAuth } = require('whatsapp-web.js'); // MUDADO PARA LocalAuth
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcodeTerminal = require('qrcode-terminal');
-const express = require('express'); // Adicionado para health check, opcional mas bom para Docker
-
 logger.info("Configurando o cliente do WhatsApp...");
 const client = new Client({
     authStrategy: new LocalAuth({ dataPath: "auth_data" }), // USANDO LocalAuth

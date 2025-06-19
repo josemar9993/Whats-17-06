@@ -2,15 +2,15 @@
   "name": "meu-bot-whatsapp",
   "version": "1.0.0",
   "description": "Bot WhatsApp com resumo de conversas e armazenamento em JSON.",
-  "main": "src/index.js",
+  "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "dev": "nodemon src/index.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "stop": "pm2 stop meu-bot-whatsapp",
     "restart": "pm2 restart meu-bot-whatsapp --update-env",
     "delete": "pm2 delete meu-bot-whatsapp",
     "logs": "pm2 logs meu-bot-whatsapp",
-    "test": "NODE_ENV=test node src/emailer.js",
+    "test": "NODE_ENV=test node emailer.js",
     "gcp-build": "gcloud builds submit --config cloudbuild.yaml .",
     "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
     "docker:run-local": "docker run -it --rm -v \"%CD%/auth_data\":/app/auth_data -v \"%CD%/logs\":/app/logs --name meu-bot-local meu-bot-whatsapp-local:latest",
@@ -51,7 +51,6 @@
     "npm": ">=8.0.0"
   },
   "files": [
-    "src",
     "ecosystem.config.js",
     "Dockerfile",
     "cloudbuild.yaml",
