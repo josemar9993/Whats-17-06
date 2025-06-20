@@ -91,10 +91,10 @@ async function testEmail() {
 
 /**
  * Carrega as conversas de um dia específico (formato: YYYY-MM-DD).
- * Supondo que cada dia esteja em um arquivo src/chats_salvos/chats-YYYY-MM-DD.json
+ * Supondo que cada dia esteja em um arquivo chats_salvos/chats-YYYY-MM-DD.json
  */
 function loadChatsByDate(dateStr) {
-  const filePath = path.resolve(__dirname, `./chats_salvos/chats-${dateStr}.json`);
+  const filePath = path.resolve(__dirname, `../chats_salvos/chats-${dateStr}.json`);
   if (fs.existsSync(filePath)) {
     try {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
