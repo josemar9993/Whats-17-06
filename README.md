@@ -5,7 +5,7 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 ## Funcionalidades principais
 
 - **Integração com o WhatsApp** através da biblioteca `whatsapp-web.js` com autenticação `LocalAuth`.
-- **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador.
+- **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador definido em `WHATSAPP_ADMIN_NUMBER`.
 - **Armazenamento de mensagens**: as conversas do dia são salvas em `chats_salvos/chats-YYYY-MM-DD.json`.
 - **Resumos automáticos**: uma tarefa `cron` é executada às 23:50 para salvar as conversas e disparar um e-mail com o resumo do dia.
 - **Envio de e-mail**: utiliza `nodemailer` com uma conta Gmail para enviar resumos completos ou apenas de pendências.
@@ -38,6 +38,7 @@ EMAIL_USER=seu_usuario@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
 EMAIL_TO=destinatario@gmail.com
 ```
+O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
 ## Executando localmente
