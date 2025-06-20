@@ -1,8 +1,7 @@
 // src/emailer.js
 
 // Importações necessárias
-const fs = require('fs');
-const path = require('path');
+const db = require('./database');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
 const logger = require('./logger');
@@ -22,7 +21,7 @@ const transporter = nodemailer.createTransport({
 
 /**
  * Gera e envia o resumo diário completo por e-mail.
- * 
+ *
  * @param {Object} chats  Mesmo objeto de chats usado no summarizer.js
  */
 async function sendDailySummary(chats) {
@@ -56,7 +55,7 @@ async function sendDailySummary(chats) {
 
 /**
  * Gera e envia o resumo apenas de pendências por e-mail.
- * 
+ *
  * @param {Object} chats
  */
 async function sendPendingSummary(chats) {
@@ -78,29 +77,22 @@ async function sendPendingSummary(chats) {
   }
 }
 
-
 /**
  * Carrega as conversas de um dia específico (formato: YYYY-MM-DD).
  * Supondo que cada dia esteja em um arquivo chats_salvos/chats-YYYY-MM-DD.json
  */
+/**
+ * Obtém as mensagens de um determinado dia.
+ * @param {string} dateStr - data no formato YYYY-MM-DD
+ */
 function loadChatsByDate(dateStr) {
-  const filePath = path.resolve(__dirname, `../chats_salvos/chats-${dateStr}.json`);
-  if (fs.existsSync(filePath)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-      if (Array.isArray(data)) {
-        logger.info(`Carregado ${data.length} mensagens de ${filePath}`);
-        return data;
-      }
-      logger.error('O arquivo não contém um array de mensagens válido.');
-      return [];
-    } catch (e) {
-      logger.error('Erro ao ler o arquivo JSON:', e.message);
-      return [];
-    }
+  const data = db.getMessagesByDate(dateStr);
+  if (data.length > 0) {
+    logger.info(`Carregado ${data.length} mensagens de ${dateStr}`);
+  } else {
+    logger.warn(`Nenhuma mensagem encontrada para ${dateStr}`);
   }
-  logger.warn(`Arquivo não encontrado: ${filePath}`);
-  return [];
+  return data;
 }
 
 /**

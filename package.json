@@ -10,7 +10,10 @@
     "restart": "pm2 restart meu-bot-whatsapp --update-env",
     "delete": "pm2 delete meu-bot-whatsapp",
     "logs": "pm2 logs meu-bot-whatsapp",
-    "test": "NODE_ENV=test node src/emailer.js",
+    "test": "jest",
+    "lint": "eslint \"src/**/*.js\"",
+    "format": "prettier --write \"src/**/*.js\"",
+    "prepare": "husky install",
     "gcp-build": "gcloud builds submit --config cloudbuild.yaml .",
     "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
     "docker:run-local": "docker run -it --rm -v \"$(pwd)/auth_data:/app/auth_data\" -v \"$(pwd)/logs:/app/logs\" --name meu-bot-local meu-bot-whatsapp-local:latest",
@@ -30,6 +33,7 @@
   "private": true,
   "dependencies": {
     "@google-cloud/storage": "^7.0.0",
+    "better-sqlite3": "^11.10.0",
     "compromise": "^13.11.3",
     "dotenv": "^16.4.5",
     "express": "^4.21.2",
@@ -44,7 +48,11 @@
     "winston": "^3.11.0"
   },
   "devDependencies": {
-    "nodemon": "^3.0.3"
+    "eslint-config-prettier": "^10.1.5",
+    "husky": "^9.1.7",
+    "jest": "^30.0.2",
+    "nodemon": "^3.0.3",
+    "prettier": "^3.5.3"
   },
   "engines": {
     "node": ">=16.0.0",

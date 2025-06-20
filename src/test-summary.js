@@ -14,15 +14,51 @@ async function testSendDailyEmail() {
     {
       chatId: 'chat1@c.us',
       messages: [
-        { chatId: 'chat1@c.us', id: 'msg1', timestamp: Math.floor(Date.now() / 1000) - 3600, isoTimestamp: new Date().toISOString(), senderName: 'Alice', type: 'chat', body: 'Olá Bob, tudo bem?', fromMe: false },
-        { chatId: 'chat1@c.us', id: 'msg2', timestamp: Math.floor(Date.now() / 1000) - 1800, isoTimestamp: new Date().toISOString(), senderName: 'Bob', type: 'chat', body: 'Tudo ótimo, Alice! E com você?', fromMe: false },
-        { chatId: 'chat1@c.us', id: 'msg3', timestamp: Math.floor(Date.now() / 1000), isoTimestamp: new Date().toISOString(), senderName: 'Alice', type: 'chat', body: 'Também estou bem. Precisamos discutir o projeto X.', fromMe: false },
+        {
+          chatId: 'chat1@c.us',
+          id: 'msg1',
+          timestamp: Math.floor(Date.now() / 1000) - 3600,
+          isoTimestamp: new Date().toISOString(),
+          senderName: 'Alice',
+          type: 'chat',
+          body: 'Olá Bob, tudo bem?',
+          fromMe: false
+        },
+        {
+          chatId: 'chat1@c.us',
+          id: 'msg2',
+          timestamp: Math.floor(Date.now() / 1000) - 1800,
+          isoTimestamp: new Date().toISOString(),
+          senderName: 'Bob',
+          type: 'chat',
+          body: 'Tudo ótimo, Alice! E com você?',
+          fromMe: false
+        },
+        {
+          chatId: 'chat1@c.us',
+          id: 'msg3',
+          timestamp: Math.floor(Date.now() / 1000),
+          isoTimestamp: new Date().toISOString(),
+          senderName: 'Alice',
+          type: 'chat',
+          body: 'Também estou bem. Precisamos discutir o projeto X.',
+          fromMe: false
+        }
       ]
     },
     {
       chatId: 'chat2@c.us',
       messages: [
-        { chatId: 'chat2@c.us', id: 'msg4', timestamp: Math.floor(Date.now() / 1000) - 7200, isoTimestamp: new Date().toISOString(), senderName: 'Charlie', type: 'chat', body: 'Reunião amanhã às 10h?', fromMe: false },
+        {
+          chatId: 'chat2@c.us',
+          id: 'msg4',
+          timestamp: Math.floor(Date.now() / 1000) - 7200,
+          isoTimestamp: new Date().toISOString(),
+          senderName: 'Charlie',
+          type: 'chat',
+          body: 'Reunião amanhã às 10h?',
+          fromMe: false
+        }
       ]
     }
   ];
@@ -32,9 +68,15 @@ async function testSendDailyEmail() {
     // Nota: sendDailySummary internamente chama generateSummary, que agora gera um resumo local.
     // A configuração da OPENAI_API_KEY não é mais necessária para esta funcionalidade.
     await emailer.sendDailySummary(mockChats);
-    logger.info('[TestEmail] Função sendDailySummary executada. Verifique a caixa de entrada de: ' + process.env.EMAIL_TO);
+    logger.info(
+      '[TestEmail] Função sendDailySummary executada. Verifique a caixa de entrada de: ' +
+        process.env.EMAIL_TO
+    );
   } catch (error) {
-    logger.error('[TestEmail] Erro ao tentar enviar o e-mail de resumo diário:', { message: error.message, stack: error.stack });
+    logger.error(
+      '[TestEmail] Erro ao tentar enviar o e-mail de resumo diário:',
+      { message: error.message, stack: error.stack }
+    );
   }
 }
 
