@@ -42,6 +42,7 @@ EMAIL_TO=schieste87@gmail.com
 CHROMIUM_PATH=/usr/bin/google-chrome-stable
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
+O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automático.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
 ## Executando localmente
