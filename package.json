@@ -13,7 +13,7 @@
     "test": "NODE_ENV=test node emailer.js",
     "gcp-build": "gcloud builds submit --config cloudbuild.yaml .",
     "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
-    "docker:run-local": "docker run -it --rm -v \"%CD%/auth_data\":/app/auth_data -v \"%CD%/logs\":/app/logs --name meu-bot-local meu-bot-whatsapp-local:latest",
+    "docker:run-local": "docker run -it --rm -v \"$(pwd)/auth_data:/app/auth_data\" -v \"$(pwd)/logs:/app/logs\" --name meu-bot-local meu-bot-whatsapp-local:latest",
     "docker:check-wwebjs": "docker run --rm meu-bot-whatsapp-local:latest node -e \"try { console.log(Object.keys(require('whatsapp-web.js'))); } catch (e) { console.error('Erro ao carregar whatsapp-web.js:', e); }\"",
     "docker:stop-local": "(docker stop meu-bot-local && docker rm -f meu-bot-local) || echo \"Contêiner 'meu-bot-local' não encontrado ou já parado.\"",
     "docker:test-local": "npm run docker:stop-local && npm run docker:build-local && npm run docker:run-local"

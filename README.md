@@ -63,6 +63,14 @@ O repositório inclui um `Dockerfile` pronto para execução. Para construir e r
 npm run docker:build-local
 npm run docker:run-local
 ```
+Se preferir executar o comando manualmente, utilize a sintaxe abaixo (útil em sistemas Linux/macOS):
+
+```bash
+docker run -it --rm \
+  -v "$(pwd)/auth_data:/app/auth_data" \
+  -v "$(pwd)/logs:/app/logs" \
+  --name meu-bot-local meu-bot-whatsapp-local:latest
+```
 
 ## Uso com PM2
 
