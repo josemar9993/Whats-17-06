@@ -139,38 +139,42 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
-  // Armazena a mensagem se não for de grupo
-  const chat = await msg.getChat();
-  if (!chat.isGroup) {
-    const contact = await msg.getContact();
-    dailyMessages.push({
-      chatId: msg.from,
-      id: msg.id.id,
-      timestamp: msg.timestamp,
-      isoTimestamp: new Date(msg.timestamp * 1000).toISOString(),
-      senderName: contact.pushname || contact.name || msg.from,
-      type: msg.type,
-      body: msg.body,
-      fromMe: msg.fromMe,
-    });
-  }
+  try {
+    // Armazena a mensagem se não for de grupo
+    const chat = await msg.getChat();
+    if (!chat.isGroup) {
+      const contact = await msg.getContact();
+      dailyMessages.push({
+        chatId: msg.from,
+        id: msg.id.id,
+        timestamp: msg.timestamp,
+        isoTimestamp: new Date(msg.timestamp * 1000).toISOString(),
+        senderName: contact.pushname || contact.name || msg.from,
+        type: msg.type,
+        body: msg.body,
+        fromMe: msg.fromMe,
+      });
+    }
 
-  if (msg.body === '!ping') {
-    await msg.reply('pong');
-    logger.info(`Respondeu pong para !ping de ${msg.from}`);
-  } else if (msg.body === '!pendencias' && msg.fromMe) {
-    logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
-    // Carrega as conversas do dia para análise
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const chatsDoDia = emailer.loadChatsByDate(todayStr);
-    const todasAsConversas = [...chatsDoDia, ...dailyMessages]; // Combina salvas e em memória
-    
-    const { generatePendingSummary } = require('./summarizer');
-    const resumoPendencias = generatePendingSummary(todasAsConversas);
-    
-    await client.sendMessage(msg.from, resumoPendencias);
+    if (msg.body === '!ping') {
+      await msg.reply('pong');
+      logger.info(`Respondeu pong para !ping de ${msg.from}`);
+    } else if (msg.body === '!pendencias' && msg.fromMe) {
+      logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
+      // Carrega as conversas do dia para análise
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const chatsDoDia = emailer.loadChatsByDate(todayStr);
+      const todasAsConversas = [...chatsDoDia, ...dailyMessages]; // Combina salvas e em memória
+
+      const { generatePendingSummary } = require('./summarizer');
+      const resumoPendencias = generatePendingSummary(todasAsConversas);
+
+      await client.sendMessage(msg.from, resumoPendencias);
+    }
+    // Adicione sua lógica de manipulação de mensagens aqui
+  } catch (err) {
+    logger.error(`Erro ao processar mensagem ${msg.id?.id || msg.id} de ${msg.from}:`, err);
   }
-  // Adicione sua lógica de manipulação de mensagens aqui
 });
 
 logger.info("Inicializando o cliente... Isso pode levar um minuto.");
