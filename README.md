@@ -29,7 +29,7 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 
 ## Configuração
 
-Crie um arquivo `.env` na raiz com as variáveis abaixo (valores de exemplo):
+Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 
 ```
 WHATSAPP_ADMIN_NUMBER=559999999999@c.us
@@ -38,7 +38,6 @@ EMAIL_USER=seu_usuario@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
 EMAIL_TO=destinatario@gmail.com
 ```
-
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
 ## Executando localmente
