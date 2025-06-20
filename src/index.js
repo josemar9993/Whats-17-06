@@ -93,8 +93,8 @@ client.on('ready', () => {
     '50 23 * * *',
     () => {
       logger.info('[CRON] Executando tarefa de resumo diário...');
-      const todayStr = new Date().toISOString().slice(0, 10);
-      emailer.sendSummaryForDate(todayStr);
+      const days = parseInt(process.env.DEFAULT_SUMMARY_DAYS || '1', 10);
+      emailer.sendSummaryForLastDays(days);
     },
     {
       scheduled: true,

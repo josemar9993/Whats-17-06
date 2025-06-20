@@ -74,13 +74,11 @@ function generateSummary(chats) {
     let enviadas = 0;
     let recebidas = 0;
     let ultimaMsg = null;
-    let ultimaMsgFromMe = null;
-    let ultimaMsgFromContato = null;
     let tempos = [];
     let lastFromContato = null;
     let lastFromMe = null;
     let temasDetectados = new Set();
-    chat.messages.forEach((messageObj, idx) => {
+    chat.messages.forEach((messageObj) => {
       const text =
         typeof messageObj === 'string' ? messageObj : messageObj.body;
       const fromMe = messageObj.fromMe;
@@ -91,7 +89,6 @@ function generateSummary(chats) {
       else neutralMessages++;
       if (fromMe) {
         enviadas++;
-        ultimaMsgFromMe = messageObj;
         lastFromMe = messageObj;
         // Se a anterior era do contato, calcula tempo de resposta
         if (lastFromContato) {
@@ -99,7 +96,6 @@ function generateSummary(chats) {
         }
       } else {
         recebidas++;
-        ultimaMsgFromContato = messageObj;
         lastFromContato = messageObj;
         // Se a anterior era sua, calcula tempo de resposta do contato
         if (lastFromMe) {

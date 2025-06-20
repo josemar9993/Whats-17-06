@@ -96,6 +96,23 @@ function loadChatsByDate(dateStr) {
 }
 
 /**
+ * Carrega as mensagens dos últimos `days` dias, incluindo o dia atual.
+ *
+ * @param {number} days - Quantidade de dias a buscar.
+ * @returns {Array} Array de mensagens combinadas.
+ */
+function loadChatsForLastDays(days) {
+  const allMessages = [];
+  for (let i = 0; i < days; i++) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().slice(0, 10);
+    allMessages.push(...loadChatsByDate(dateStr));
+  }
+  return allMessages;
+}
+
+/**
  * Envia o resumo das conversas de um dia específico por e-mail.
  * @param {string} dateStr - Data no formato YYYY-MM-DD
  */
@@ -103,6 +120,19 @@ async function sendSummaryForDate(dateStr) {
   const chats = loadChatsByDate(dateStr);
   if (!chats || chats.length === 0) {
     logger.info(`Nenhuma conversa encontrada para ${dateStr}`);
+    return;
+  }
+  await sendDailySummary(chats);
+}
+
+/**
+ * Envia o resumo dos últimos `days` dias por e-mail.
+ * @param {number} days - Quantidade de dias a incluir no resumo.
+ */
+async function sendSummaryForLastDays(days) {
+  const chats = loadChatsForLastDays(days);
+  if (chats.length === 0) {
+    logger.info(`Nenhuma conversa encontrada nos últimos ${days} dias`);
     return;
   }
   await sendDailySummary(chats);
@@ -118,5 +148,7 @@ module.exports = {
   sendDailySummary,
   sendPendingSummary,
   sendSummaryForDate,
-  loadChatsByDate
+  loadChatsByDate,
+  loadChatsForLastDays,
+  sendSummaryForLastDays
 };
