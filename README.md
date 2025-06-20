@@ -32,11 +32,11 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 
 ```
-WHATSAPP_ADMIN_NUMBER=559999999999@c.us
+WHATSAPP_ADMIN_NUMBER=55999931227@c.us
 DEFAULT_SUMMARY_DAYS=7
-EMAIL_USER=seu_usuario@gmail.com
+EMAIL_USER=josemarschieste84@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
-EMAIL_TO=destinatario@gmail.com
+EMAIL_TO=schieste87@gmail.com
 CHROMIUM_PATH=/usr/bin/google-chrome-stable
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
