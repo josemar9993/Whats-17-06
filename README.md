@@ -87,3 +87,4 @@ node test-summary.js
 - O projeto foi pensado para ter os arquivos em `src/`, mas atualmente o código principal está na raiz do repositório.
 - Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc.txt`.
 
+# Versão 1.1
