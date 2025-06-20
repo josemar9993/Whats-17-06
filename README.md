@@ -97,6 +97,6 @@ node src/test-summary.js
 
 - Os arquivos `DEPLOYMENT_FIX.md` e `INSTRUCOES_DEPLOY.md` contêm instruções específicas de deploy para plataformas como Coolify.
 - Todo o código principal agora está organizado dentro do diretório `src/`.
-- Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc.txt`.
+- Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc`.
 
 # Versão 1.1

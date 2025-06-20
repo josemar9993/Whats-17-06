@@ -1,16 +1,16 @@
-export default [
+module.exports = [
   {
-    files: ["src/**/*.js"],
+    files: ['src/**/*.js'],
     languageOptions: {
       ecmaVersion: 2021,
-      sourceType: "module"
+      sourceType: 'module'
     },
     linterOptions: {
       reportUnusedDisableDirectives: true
     },
     rules: {
-      "no-unused-vars": "warn",
-      "semi": ["error", "always"]
+      'no-unused-vars': 'warn',
+      semi: ['error', 'always']
     }
   }
 ];
