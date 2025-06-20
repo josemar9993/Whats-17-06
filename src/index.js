@@ -97,8 +97,9 @@ const client = new Client({
             // '--single-process', // Remova se causar problemas; às vezes necessário em ambientes restritos
             '--disable-gpu'
         ],
-        // Para Windows, se rodar fora do Docker e o Chrome não for encontrado:
-        // executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', 
+        // Caso o Chromium não seja baixado automaticamente (como em ambientes
+        // de deploy restritos), use o Chrome instalado no sistema.
+        executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome-stable'
     }
 });
 

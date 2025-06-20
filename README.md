@@ -37,6 +37,7 @@ DEFAULT_SUMMARY_DAYS=7
 EMAIL_USER=seu_usuario@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
 EMAIL_TO=destinatario@gmail.com
+CHROMIUM_PATH=/usr/bin/google-chrome-stable
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
