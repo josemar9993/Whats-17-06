@@ -5,6 +5,7 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
+const logger = require('./logger');
 
 /**
  * Configura o transportador de e-mail (Gmail) com base nas variáveis de ambiente.
@@ -27,16 +28,16 @@ const transporter = nodemailer.createTransport({
 async function sendDailySummary(chats) {
   const { generateSummary } = require('./summarizer');
   if (!Array.isArray(chats)) {
-    console.warn('O parâmetro chats não é um array. O e-mail não será enviado.');
+    logger.warn('O parâmetro chats não é um array. O e-mail não será enviado.');
     return;
   }
   if (chats.length === 0) {
-    console.warn('Nenhuma mensagem encontrada. Gerando análise vazia.');
+    logger.warn('Nenhuma mensagem encontrada. Gerando análise vazia.');
   }
   const resumoTexto = await generateSummary(chats);
 
   // Adicione esta linha para visualizar no terminal:
-  console.log(resumoTexto);
+  logger.info(resumoTexto);
 
   const mailOptions = {
     from: process.env.EMAIL_USER,
@@ -47,9 +48,9 @@ async function sendDailySummary(chats) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Email de resumo diário enviado com sucesso!');
+    logger.info('Email de resumo diário enviado com sucesso!');
   } catch (error) {
-    console.error('Erro ao enviar o email:', error);
+    logger.error('Erro ao enviar o email:', error);
   }
 }
 
@@ -71,23 +72,12 @@ async function sendPendingSummary(chats) {
 
   try {
     await transporter.sendMail(mailOptions);
-    console.log('Email de pendências enviado com sucesso!');
+    logger.info('Email de pendências enviado com sucesso!');
   } catch (error) {
-    console.error('Erro ao enviar o email de pendências:', error);
+    logger.error('Erro ao enviar o email de pendências:', error);
   }
 }
 
-/**
- * Função de teste para enviar um e-mail de resumo diário.
- */
-async function testEmail() {
-  const testChats = [
-    { id: 'chat1', messages: ['Mensagem 1', 'Mensagem 2'] },
-    { id: 'chat2', messages: ['Mensagem 3', 'Mensagem 4'] }
-  ];
-
-  await sendDailySummary(testChats);
-}
 
 /**
  * Carrega as conversas de um dia específico (formato: YYYY-MM-DD).
@@ -99,17 +89,17 @@ function loadChatsByDate(dateStr) {
     try {
       const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
       if (Array.isArray(data)) {
-        console.log(`Carregado ${data.length} mensagens de ${filePath}`);
+        logger.info(`Carregado ${data.length} mensagens de ${filePath}`);
         return data;
       }
-      console.error('O arquivo não contém um array de mensagens válido.');
+      logger.error('O arquivo não contém um array de mensagens válido.');
       return [];
     } catch (e) {
-      console.error('Erro ao ler o arquivo JSON:', e.message);
+      logger.error('Erro ao ler o arquivo JSON:', e.message);
       return [];
     }
   }
-  console.warn(`Arquivo não encontrado: ${filePath}`);
+  logger.warn(`Arquivo não encontrado: ${filePath}`);
   return [];
 }
 
@@ -120,7 +110,7 @@ function loadChatsByDate(dateStr) {
 async function sendSummaryForDate(dateStr) {
   const chats = loadChatsByDate(dateStr);
   if (!chats || chats.length === 0) {
-    console.log(`Nenhuma conversa encontrada para ${dateStr}`);
+    logger.info(`Nenhuma conversa encontrada para ${dateStr}`);
     return;
   }
   await sendDailySummary(chats);

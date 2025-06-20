@@ -52,11 +52,11 @@ const saveDailyChats = () => {
 process.on('uncaughtException', (err, origin) => {
   const fsSync = require('fs');
   const pathSync = require('path');
-  console.error(`\n====== UNCAUGHT EXCEPTION ======\n`);
-  console.error(`Timestamp: ${new Date().toISOString()}`);
-  console.error(`Origem: ${origin}`);
-  console.error(err);
-  console.error(`\n==============================\n`);
+  logger.error('====== UNCAUGHT EXCEPTION ======');
+  logger.error(`Timestamp: ${new Date().toISOString()}`);
+  logger.error(`Origem: ${origin}`);
+  logger.error(err);
+  logger.error('==============================');
   try {
     const logsDir = pathSync.join(__dirname, 'logs');
     if (!fsSync.existsSync(logsDir)) fsSync.mkdirSync(logsDir, { recursive: true });
@@ -66,13 +66,13 @@ process.on('uncaughtException', (err, origin) => {
   }
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', (reason) => {
   const fsSync = require('fs');
   const pathSync = require('path');
-  console.error(`\n====== UNHANDLED REJECTION ======\n`);
-  console.error(`Timestamp: ${new Date().toISOString()}`);
-  console.error('Motivo do Rejection:', reason);
-  console.error(`\n===============================\n`);
+  logger.error('====== UNHANDLED REJECTION ======');
+  logger.error(`Timestamp: ${new Date().toISOString()}`);
+  logger.error('Motivo do Rejection:', reason);
+  logger.error('===============================');
   try {
     const logsDir = pathSync.join(__dirname, 'logs');
     if (!fsSync.existsSync(logsDir)) fsSync.mkdirSync(logsDir, { recursive: true });
@@ -159,7 +159,7 @@ client.on('message', async msg => {
     if (msg.body === '!ping') {
       await msg.reply('pong');
       logger.info(`Respondeu pong para !ping de ${msg.from}`);
-    } else if (msg.body === '!pendencias' && msg.fromMe) {
+    } else if (msg.body === '!pendencias' && msg.from === process.env.WHATSAPP_ADMIN_NUMBER) {
       logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
       // Carrega as conversas do dia para análise
       const todayStr = new Date().toISOString().slice(0, 10);
