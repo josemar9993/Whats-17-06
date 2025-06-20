@@ -19,7 +19,7 @@ const saveDailyChats = () => {
     return;
   }
   const todayStr = new Date().toISOString().slice(0, 10);
-  const filePath = path.resolve(__dirname, `./chats_salvos/chats-${todayStr}.json`);
+  const filePath = path.resolve(__dirname, `../chats_salvos/chats-${todayStr}.json`);
   const dir = path.dirname(filePath);
 
   if (!fs.existsSync(dir)) {

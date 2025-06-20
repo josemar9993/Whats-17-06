@@ -14,11 +14,11 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 ## Estrutura do repositório
 
 ```
-index.js             - Inicializa o cliente WhatsApp e agenda o resumo diário
-summarizer.js        - Analisa mensagens e gera resumos gerais ou de pendências
-emailer.js           - Envio de e-mails com os resumos gerados
-logger.js            - Configuração simples de logs com Winston
-test-summary.js      - Script exemplo para testar o envio de e-mail
+src/index.js         - Inicializa o cliente WhatsApp e agenda o resumo diário
+src/summarizer.js    - Analisa mensagens e gera resumos gerais ou de pendências
+src/emailer.js       - Envio de e-mails com os resumos gerados
+src/logger.js        - Configuração simples de logs com Winston
+src/test-summary.js  - Script exemplo para testar o envio de e-mail
 Dockerfile           - Imagem com Chrome e Node para execução em contêiner
 ecosystem.config.js  - Arquivo de configuração do PM2
 cloudbuild.yaml      - Exemplo de build no Google Cloud Build
@@ -48,7 +48,7 @@ Para que o envio de e-mails funcione é necessário criar uma senha de aplicativ
    ```
 2. Inicie o bot:
    ```bash
-   node index.js
+   node src/index.js
    ```
    Na primeira execução será exibido um QR Code no terminal para autenticação.
 
@@ -85,13 +85,13 @@ pm2 start ecosystem.config.js
 Para testar o envio de e-mails sem precisar aguardar o agendamento, execute:
 
 ```bash
-node test-summary.js
+node src/test-summary.js
 ```
 
 ## Considerações adicionais
 
 - Os arquivos `DEPLOYMENT_FIX.md` e `INSTRUCOES_DEPLOY.md` contêm instruções específicas de deploy para plataformas como Coolify.
-- O projeto foi pensado para ter os arquivos em `src/`, mas atualmente o código principal está na raiz do repositório.
+- Todo o código principal agora está organizado dentro do diretório `src/`.
 - Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc.txt`.
 
 # Versão 1.1
