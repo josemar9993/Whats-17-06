@@ -1,15 +1,16 @@
 # Whats-17-06
 
-Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos diários. As mensagens são armazenadas em arquivos JSON e analisadas para gerar estatísticas de interação e pendências.
+Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos diários. As mensagens agora são persistidas em um banco SQLite para permitir consultas mais fáceis e seguras.
 
 ## Funcionalidades principais
 
 - **Integração com o WhatsApp** através da biblioteca `whatsapp-web.js` com autenticação `LocalAuth`.
 - **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador definido em `WHATSAPP_ADMIN_NUMBER`.
-- **Armazenamento de mensagens**: as conversas do dia são salvas em `chats_salvos/chats-YYYY-MM-DD.json`.
+- **Armazenamento de mensagens**: as mensagens são registradas em um banco SQLite (`data/messages.db`).
 - **Resumos automáticos**: uma tarefa `cron` é executada às 23:50 para salvar as conversas e disparar um e-mail com o resumo do dia.
 - **Envio de e-mail**: utiliza `nodemailer` com uma conta Gmail para enviar resumos completos ou apenas de pendências.
 - **Servidor Express** para health check, útil em execuções via Docker ou PM2.
+- **Qualidade garantida**: ESLint e Prettier executam no pre-commit e há testes unitários com Jest.
 
 ## Estrutura do repositório
 
@@ -19,6 +20,7 @@ src/summarizer.js    - Analisa mensagens e gera resumos gerais ou de pendências
 src/emailer.js       - Envio de e-mails com os resumos gerados
 src/logger.js        - Configuração simples de logs com Winston
 src/test-summary.js  - Script exemplo para testar o envio de e-mail
+COMMANDS.md          - Referência rápida dos comandos do bot
 Dockerfile           - Imagem com Chrome e Node para execução em contêiner
 ecosystem.config.js  - Arquivo de configuração do PM2
 cloudbuild.yaml      - Exemplo de build no Google Cloud Build
