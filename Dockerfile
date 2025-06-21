@@ -1,33 +1,43 @@
-FROM node:18-alpine
+# =================================
+#  Estágio 1: Builder
+# =================================
+FROM node:18-bookworm-slim AS builder
 
-# Diretório de trabalho da aplicação
 WORKDIR /app
 
-# Instala o Chromium e dependências básicas
-RUN apk add --no-cache \
-    chromium \
-    nss \
-    freetype \
-    harfbuzz \
-    ttf-freefont
+COPY package*.json ./
+RUN npm install
 
-# Copia apenas arquivos de dependência para instalar módulos
-COPY package.json package-lock.json* ecosystem.config.js* ./
-
-# Define variáveis antes da instalação de dependências para evitar
-# download automático do Chromium pelo Puppeteer.
-ENV CHROMIUM_PATH=/usr/bin/chromium-browser \
-    PUPPETEER_SKIP_DOWNLOAD=true
-
-RUN npm ci --omit=dev
-
-# Copia o restante do código para o contêiner
 COPY . .
 
-# Prepara diretórios utilizados pela aplicação
-RUN mkdir -p /app/auth_data /app/logs && chown -R node:node /app
+# =================================
+#  Estágio 2: Production
+# =================================
+FROM node:18-bookworm-slim
 
-USER node
+WORKDIR /app
 
-# Comando de inicialização
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    ca-certificates \
+    --no-install-recommends \
+    && wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome-keyring.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome-keyring.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update \
+    && apt-get install -y google-chrome-stable --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r pptruser && useradd -r -g pptruser -G audio,video pptruser \
+    && mkdir -p /home/pptruser/Downloads \
+    && chown -R pptruser:pptruser /home/pptruser
+
+COPY --from=builder --chown=pptruser:pptruser /app/node_modules ./node_modules
+COPY --from=builder --chown=pptruser:pptruser /app/package.json ./
+COPY --from=builder --chown=pptruser:pptruser /app/src ./src
+
+RUN chown -R pptruser:pptruser /app
+
+USER pptruser
+
 CMD ["node", "src/index.js"]

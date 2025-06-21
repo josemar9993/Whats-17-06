@@ -51,9 +51,10 @@ process.on('unhandledRejection', (reason) => {
 
 logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
-  authStrategy: new LocalAuth({ dataPath: 'auth_data' }), // USANDO LocalAuth
+  // Persistência da sessão em diretório dedicado
+  authStrategy: new LocalAuth({ dataPath: './session_data' }),
   puppeteer: {
-    headless: true, // Mantenha true para Docker, ou false para ver o navegador se rodar fora do Docker
+    headless: true,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
@@ -61,11 +62,8 @@ const client = new Client({
       '--disable-accelerated-2d-canvas',
       '--no-first-run',
       '--no-zygote',
-      // '--single-process', // Remova se causar problemas; às vezes necessário em ambientes restritos
       '--disable-gpu'
     ],
-    // Caso o Chromium não seja baixado automaticamente (como em ambientes
-    // de deploy restritos), use o Chrome instalado no sistema.
     executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome-stable'
   }
 });
@@ -159,10 +157,10 @@ client.initialize().catch((err) => {
 
 // Servidor Express para health check (útil para Docker)
 const app = express();
-const port = process.env.PORT || 8080; // O Dockerfile não expõe explicitamente, mas pm2 pode usar
-app.get('/', (req, res) => {
-  res.send('Bot WhatsApp (local) está rodando!');
+const port = process.env.PORT || 8080;
+app.get('/health', (req, res) => {
+  res.send('OK');
 });
 app.listen(port, () => {
-  logger.info(`Servidor de teste local ouvindo na porta ${port}`);
+  logger.info(`Servidor de health check ouvindo na porta ${port}`);
 });
