@@ -13,6 +13,12 @@ RUN apk add --no-cache \
 
 # Copia apenas arquivos de dependência para instalar módulos
 COPY package.json package-lock.json* ecosystem.config.js* ./
+
+# Define variáveis antes da instalação de dependências para evitar
+# download automático do Chromium pelo Puppeteer.
+ENV CHROMIUM_PATH=/usr/bin/chromium-browser \
+    PUPPETEER_SKIP_DOWNLOAD=true
+
 RUN npm ci --omit=dev
 
 # Copia o restante do código para o contêiner
@@ -20,9 +26,6 @@ COPY . .
 
 # Prepara diretórios utilizados pela aplicação
 RUN mkdir -p /app/auth_data /app/logs && chown -R node:node /app
-
-ENV CHROMIUM_PATH=/usr/bin/chromium-browser \
-    PUPPETEER_SKIP_DOWNLOAD=true
 
 USER node
 
