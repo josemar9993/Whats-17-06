@@ -5,6 +5,7 @@ npm-debug.log
 
 # Dados de autenticação e cache do navegador
 auth_data/
+session_data/
 chrome/
 chrome-headless-shell/
 .wwebjs_auth/
