@@ -100,3 +100,11 @@ node src/test-summary.js
 - Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc`.
 
 # Versão 1.1
+
+## Deploy no Coolify
+
+1. No painel da Coolify, acesse sua aplicação.
+2. Em "Configuration" escolha **Dockerfile** como método de build e mantenha a branch `main`.
+3. Salve e clique em **Deploy**.
+
+Se ocorrer algum erro mencionando `nixpacks` ou `nix-env`, verifique se o passo acima está configurado corretamente.
