@@ -1,8 +1,8 @@
 // src/test-summary.js
 
 // Caminho corrigido para o módulo emailer
-const emailer = require('./emailer');
-const logger = require('./logger'); // Usar o logger para consistência
+const emailer = require('../emailer');
+const logger = require('../logger'); // Usar o logger para consistência
 
 // Função assíncrona para executar o teste de envio de e-mail
 async function testSendDailyEmail() {
