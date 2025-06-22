@@ -20,7 +20,7 @@ src/index.js         - Inicializa o cliente WhatsApp e agenda o resumo diário
 src/summarizer.js    - Analisa mensagens e gera resumos gerais ou de pendências
 src/emailer.js       - Envio de e-mails com os resumos gerados
 src/logger.js        - Configuração simples de logs com Winston
-src/test-summary.js  - Script exemplo para testar o envio de e-mail
+src/scripts/test-summary.js  - Script exemplo para testar o envio de e-mail
 src/commands/        - Comandos organizados de forma modular
 COMMANDS.md          - Referência rápida dos comandos do bot
 Dockerfile           - Imagem com Chrome e Node para execução em contêiner
@@ -38,6 +38,8 @@ Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 ```
 WHATSAPP_ADMIN_NUMBER=55999931227@c.us
 DEFAULT_SUMMARY_DAYS=7
+DAILY_SUMMARY_CRON=50 23 * * *
+WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
 EMAIL_TO=schieste87@gmail.com
@@ -45,6 +47,8 @@ CHROMIUM_PATH=/usr/bin/google-chrome-stable
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
 O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automático.
+`DAILY_SUMMARY_CRON` permite ajustar o horário da tarefa de resumo sem alterar o código.
+Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o WhatsApp do administrador além do e-mail.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
 ## Executando localmente
@@ -92,7 +96,7 @@ pm2 start ecosystem.config.js
 Para testar o envio de e-mails sem precisar aguardar o agendamento, execute:
 
 ```bash
-node src/test-summary.js
+node src/scripts/test-summary.js
 ```
 
 ## Considerações adicionais

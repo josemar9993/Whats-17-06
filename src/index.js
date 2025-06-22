@@ -114,13 +114,21 @@ client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
-  // Salva as conversas e envia o e-mail de resumo diário às 23:50
+  const summaryCron = process.env.DAILY_SUMMARY_CRON || '50 23 * * *';
   cron.schedule(
-    '50 23 * * *',
-    () => {
+    summaryCron,
+    async () => {
       logger.info('[CRON] Executando tarefa de resumo diário...');
       const days = parseInt(process.env.DEFAULT_SUMMARY_DAYS || '1', 10);
-      emailer.sendSummaryForLastDays(days);
+      const resumo = await emailer.sendSummaryForLastDays(days);
+      if (process.env.WHATSAPP_NOTIFY === 'true') {
+        try {
+          await client.sendMessage(process.env.WHATSAPP_ADMIN_NUMBER, resumo);
+          logger.info('Resumo diário enviado também via WhatsApp.');
+        } catch (err) {
+          logger.error('Falha ao enviar resumo via WhatsApp:', err);
+        }
+      }
     },
     {
       scheduled: true,
@@ -128,9 +136,7 @@ client.on('ready', () => {
     }
   );
 
-  logger.info(
-    '[CRON] Tarefa de resumo diário agendada para 23:50 (America/Sao_Paulo).'
-  );
+  logger.info(`[CRON] Tarefa de resumo diário agendada para "${summaryCron}".`);
 });
 
 client.on('message', async (message) => {

@@ -1,14 +1,16 @@
 // src/summarizer.js
 
-// Importa a biblioteca de Sentiment para análise de sentimentos
+// Importa bibliotecas de NLP para análise de sentimentos e detecção de tópicos
 const Sentiment = require('sentiment');
 const sentiment = new Sentiment();
+const nlp = require('compromise');
+const removeAccents = require('remove-accents');
 
 /**
- * Gera um resumo das conversas.
+ * Gera um resumo estatístico das conversas analisando sentimento, engajamento e tópicos.
  *
- * @param {Object} chats - O objeto de chats carregado do arquivo JSON.
- * @returns {string} O resumo das conversas.
+ * @param {Array<Object>|Array} chats - Lista de chats ou mensagens simples para agrupar.
+ * @returns {string} Texto em português contendo as principais métricas do período.
  */
 function generateSummary(chats) {
   // Se for um array de mensagens simples, converte para formato agrupado por chatId
@@ -39,6 +41,7 @@ function generateSummary(chats) {
   let temposResposta = [];
   let engajamento = [];
   let temasPorChat = {};
+  let globalTopics = {};
   const temasChave = [
     {
       tema: 'Financeiro',
@@ -110,6 +113,11 @@ function generateSummary(chats) {
             temasDetectados.add(tema.tema);
         }
       }
+      // Extrai substantivos para detecção de tópicos gerais
+      const nouns = nlp(removeAccents(text).toLowerCase()).nouns().out('array');
+      nouns.forEach((n) => {
+        globalTopics[n] = (globalTopics[n] || 0) + 1;
+      });
     });
     // Detecta pendência: se a última mensagem do chat não foi enviada por você, está aguardando seu retorno
     if (ultimaMsg && !ultimaMsg.fromMe) {
@@ -196,7 +204,11 @@ function generateSummary(chats) {
   const topTemas = Object.entries(temasCount)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
-  // 4. Mensagem mais longa recebida e enviada
+  // 4. Principais tópicos por frequência de substantivos
+  const topNouns = Object.entries(globalTopics)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+  // 5. Mensagem mais longa recebida e enviada
   let msgMaisLongaRecebida = null,
     msgMaisLongaEnviada = null;
   chatsArray.forEach((chat) => {
@@ -237,6 +249,8 @@ function generateSummary(chats) {
   );
   summary += `\nTop 3 temas mais frequentes:\n`;
   topTemas.forEach(([tema, qtd]) => (summary += `- ${tema}: ${qtd} chats\n`));
+  summary += `\nPrincipais tópicos mencionados:\n`;
+  topNouns.forEach(([noun, qtd]) => (summary += `- ${noun}: ${qtd} menções\n`));
   summary += `\nMensagem mais longa recebida: ${msgMaisLongaRecebida && msgMaisLongaRecebida.body ? msgMaisLongaRecebida.body.slice(0, 100) : 'N/A'}\n`;
   summary += `Mensagem mais longa enviada: ${msgMaisLongaEnviada && msgMaisLongaEnviada.body ? msgMaisLongaEnviada.body.slice(0, 100) : 'N/A'}\n`;
   if (pendencias.length > 0) {
@@ -251,10 +265,11 @@ function generateSummary(chats) {
 }
 
 /**
- * Gera um resumo apenas das conversas pendentes.
+ * Analisa as conversas e retorna apenas as pendências, isto é,
+ * chats cuja última mensagem não foi respondida.
  *
- * @param {Array} chats - Um array de objetos de chat.
- * @returns {string} O resumo das pendências.
+ * @param {Array<Object>|Array} chats - Lista de chats ou mensagens soltas.
+ * @returns {string} Texto com a lista de pendências encontradas.
  */
 function generatePendingSummary(chats) {
   let chatsArray;

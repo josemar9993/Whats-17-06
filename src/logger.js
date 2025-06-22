@@ -1,6 +1,7 @@
 // Um logger simples para fins de exemplo e teste.
 // Adapte conforme o seu sistema de logging real.
 const winston = require('winston');
+const DailyRotateFile = require('winston-daily-rotate-file');
 const fs = require('fs');
 const path = require('path');
 
@@ -19,7 +20,12 @@ const logger = winston.createLogger({
   ),
   transports: [
     new winston.transports.Console(),
-    new winston.transports.File({ filename: path.join(logDir, 'bot.log') })
+    new DailyRotateFile({
+      filename: path.join(logDir, 'bot-%DATE%.log'),
+      datePattern: 'YYYY-MM-DD',
+      maxFiles: '14d',
+      zippedArchive: true
+    })
   ]
 });
 
