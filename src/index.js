@@ -7,6 +7,9 @@ const express = require('express');
 const cron = require('node-cron');
 const emailer = require('./emailer');
 const logger = require('./logger');
+const { Collection } = require('@discordjs/collection');
+const fs = require('fs');
+const path = require('path');
 
 process.on('uncaughtException', (err, origin) => {
   const fsSync = require('fs');
@@ -68,6 +71,31 @@ const client = new Client({
   }
 });
 
+// Coleção que armazenará os comandos
+client.commands = new Collection();
+
+// Carrega os comandos dinamicamente
+const commandsPath = path.join(__dirname, 'commands');
+if (fs.existsSync(commandsPath)) {
+  const commandFolders = fs.readdirSync(commandsPath);
+  for (const folder of commandFolders) {
+    const folderPath = path.join(commandsPath, folder);
+    const commandFiles = fs
+      .readdirSync(folderPath)
+      .filter((file) => file.endsWith('.js'));
+    for (const file of commandFiles) {
+      const filePath = path.join(folderPath, file);
+      const command = require(filePath);
+      if (command.name && command.execute) {
+        client.commands.set(command.name, command);
+        logger.info(`[COMANDO CARREGADO] ${command.name}`);
+      } else {
+        logger.warn(`Comando em ${filePath} ignorado (formato inválido).`);
+      }
+    }
+  }
+}
+
 logger.info('Configurando eventos do cliente...');
 client.on('qr', (qr) => {
   logger.info('QR Code recebido, escaneie por favor:');
@@ -108,78 +136,51 @@ client.on('ready', () => {
 client.on('message', async (message) => {
   try {
     const chat = await message.getChat();
+    const contact = await message.getContact();
+    const contactName =
+      contact.pushname || contact.name || (chat.isGroup ? message.author : message.from);
 
     if (chat.isGroup) {
-      // --- LÓGICA PARA MENSAGENS DE GRUPO ---
-      const authorContact = await message.getContact();
-      const groupName = chat.name;
-      const authorName =
-        authorContact.pushname || authorContact.name || message.author;
-
       logger.info(
-        `[GRUPO] Em "${groupName}": De: ${authorName} | Mensagem: "${message.body}"`
+        `[GRUPO] Em "${chat.name}": De: ${contactName} | Mensagem: "${message.body}"`
       );
-
-      if (message.body === '!todos') {
-        let text = '';
-        const mentions = [];
-
-        for (const participant of chat.participants) {
-          const contact = await client.getContactById(
-            participant.id._serialized
-          );
-
-          mentions.push(contact);
-          text += `@${participant.id.user} `;
-        }
-
-        await chat.sendMessage(text, { mentions });
-        logger.info(`[AÇÃO GRUPO] Marquei todos no grupo "${groupName}".`);
-      }
     } else {
-      // --- LÓGICA PARA MENSAGENS PRIVADAS ---
-      const contact = await message.getContact();
-      const contactName = contact.pushname || contact.name || message.from;
-
-      logger.info(
-        `[PRIVADO] De: ${contactName} | Mensagem: "${message.body}"`
-      );
-
-      const messageData = {
-        chatId: message.from,
-        id: message.id.id,
-        timestamp: message.timestamp,
-        isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
-        senderName: contactName,
-        type: message.type,
-        body: message.body,
-        fromMe: message.fromMe
-      };
-      db.addMessage(messageData);
-
-      if (message.body === '!ping') {
-        await message.reply('pong');
-      } else if (
-        message.body === '!pendencias' &&
-        message.from === process.env.WHATSAPP_ADMIN_NUMBER
-      ) {
-        logger.info(
-          'Comando !pendencias recebido. Gerando e enviando resumo...'
-        );
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const chatsDoDia = emailer.loadChatsByDate(todayStr);
-
-        const { generatePendingSummary } = require('./summarizer');
-        const resumoPendencias = generatePendingSummary(chatsDoDia);
-
-        await client.sendMessage(message.from, resumoPendencias);
-      }
+      logger.info(`[PRIVADO] De: ${contactName} | Mensagem: "${message.body}"`);
     }
+
+    const messageData = {
+      chatId: chat.id._serialized,
+      id: message.id.id,
+      timestamp: message.timestamp,
+      isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
+      senderName: contactName,
+      type: message.type,
+      body: message.body,
+      fromMe: message.fromMe
+    };
+    db.addMessage(messageData);
+
+    const prefix = '!';
+    if (!message.body.startsWith(prefix) || message.fromMe) return;
+
+    const args = message.body.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    const command = client.commands.get(commandName);
+    if (!command) return;
+
+    logger.info(`[EXECUÇÃO] Executando comando "${command.name}"...`);
+    await command.execute(message, args, client);
   } catch (err) {
     logger.error(
       `Erro ao processar mensagem ${message.id?.id || message.id} de ${message.from}:`,
       err
     );
+    try {
+      await message.reply('Ocorreu um erro ao processar sua mensagem!');
+    } catch (e) {
+      logger.error('Falha ao enviar mensagem de erro:', e);
+    }
   }
 });
 
@@ -195,6 +196,18 @@ client.on('message_create', async (message) => {
     logger.info(
       `[MENSAGEM ENVIADA] Para: ${recipientName} (${message.to}) | Mensagem: "${message.body}"`
     );
+
+    const messageData = {
+      chatId: chat.id._serialized,
+      id: message.id.id,
+      timestamp: message.timestamp,
+      isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
+      senderName: 'Eu',
+      type: message.type,
+      body: message.body,
+      fromMe: true
+    };
+    db.addMessage(messageData);
   }
 });
 

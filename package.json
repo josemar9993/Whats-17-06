@@ -32,6 +32,7 @@
   "homepage": "https://github.com/josemar9993/Whats-17-06#readme",
   "private": true,
   "dependencies": {
+    "@discordjs/collection": "^1.5.3",
     "@google-cloud/storage": "^7.0.0",
     "better-sqlite3": "^11.10.0",
     "compromise": "^13.11.3",
