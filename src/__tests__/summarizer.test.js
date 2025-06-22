@@ -39,4 +39,22 @@ describe('summarizer', () => {
     const res = generatePendingSummary(chats);
     expect(res).toContain('Resumo de Pendências');
   });
+
+  test('generateSummary com array vazio', () => {
+    const res = generateSummary([]);
+    expect(res).toContain('Total de Mensagens: 0');
+  });
+
+  test('aceita lista simples de mensagens', () => {
+    const flat = chats[0].messages;
+    const res = generateSummary(flat);
+    expect(res).toContain('Resumo das Conversas');
+  });
+
+  test('sem pendencias retorna mensagem apropriada', () => {
+    const noPend = JSON.parse(JSON.stringify(chats));
+    noPend[0].messages[noPend[0].messages.length - 1].fromMe = true;
+    const res = generatePendingSummary(noPend);
+    expect(res).toContain('Nenhuma conversa pendente');
+  });
 });
