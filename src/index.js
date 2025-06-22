@@ -105,32 +105,35 @@ client.on('ready', () => {
   );
 });
 
-client.on('message', async (msg) => {
+client.on('message', async (message) => {
   try {
-    logger.info(`MENSAGEM RECEBIDA de ${msg.from}: ${msg.body}`);
+    const contact = await message.getContact();
+    const contactName = contact.pushname || contact.name || message.from;
+    logger.info(
+      `[MENSAGEM RECEBIDA] De: ${contactName} (${message.from}) | Mensagem: "${message.body}"`
+    );
+
     // Armazena a mensagem se não for de grupo
-    const chat = await msg.getChat();
+    const chat = await message.getChat();
     if (!chat.isGroup) {
-      const contact = await msg.getContact();
       const messageData = {
-        chatId: msg.from,
-        id: msg.id.id,
-        timestamp: msg.timestamp,
-        isoTimestamp: new Date(msg.timestamp * 1000).toISOString(),
-        senderName: contact.pushname || contact.name || msg.from,
-        type: msg.type,
-        body: msg.body,
-        fromMe: msg.fromMe
+        chatId: message.from,
+        id: message.id.id,
+        timestamp: message.timestamp,
+        isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
+        senderName: contactName,
+        type: message.type,
+        body: message.body,
+        fromMe: message.fromMe
       };
       db.addMessage(messageData);
     }
 
-    if (msg.body === '!ping') {
-      await msg.reply('pong');
-      logger.info(`Respondeu pong para !ping de ${msg.from}`);
+    if (message.body === '!ping') {
+      await message.reply('pong');
     } else if (
-      msg.body === '!pendencias' &&
-      msg.from === process.env.WHATSAPP_ADMIN_NUMBER
+      message.body === '!pendencias' &&
+      message.from === process.env.WHATSAPP_ADMIN_NUMBER
     ) {
       logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
       // Carrega as conversas do dia para análise
@@ -140,13 +143,27 @@ client.on('message', async (msg) => {
       const { generatePendingSummary } = require('./summarizer');
       const resumoPendencias = generatePendingSummary(chatsDoDia);
 
-      await client.sendMessage(msg.from, resumoPendencias);
+      await client.sendMessage(message.from, resumoPendencias);
     }
-    // Adicione sua lógica de manipulação de mensagens aqui
   } catch (err) {
     logger.error(
-      `Erro ao processar mensagem ${msg.id?.id || msg.id} de ${msg.from}:`,
+      `Erro ao processar mensagem ${message.id?.id || message.id} de ${message.from}:`,
       err
+    );
+  }
+});
+
+// Registra mensagens enviadas pelo bot
+client.on('message_create', async (message) => {
+  if (message.fromMe) {
+    const chat = await message.getChat();
+    let recipientName = chat.name;
+    if (!chat.isGroup) {
+      const contact = await client.getContactById(message.to);
+      recipientName = contact.pushname || contact.name || message.to;
+    }
+    logger.info(
+      `[MENSAGEM ENVIADA] Para: ${recipientName} (${message.to}) | Mensagem: "${message.body}"`
     );
   }
 });
