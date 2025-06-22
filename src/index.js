@@ -107,15 +107,44 @@ client.on('ready', () => {
 
 client.on('message', async (message) => {
   try {
-    const contact = await message.getContact();
-    const contactName = contact.pushname || contact.name || message.from;
-    logger.info(
-      `[MENSAGEM RECEBIDA] De: ${contactName} (${message.from}) | Mensagem: "${message.body}"`
-    );
-
-    // Armazena a mensagem se não for de grupo
     const chat = await message.getChat();
-    if (!chat.isGroup) {
+
+    if (chat.isGroup) {
+      // --- LÓGICA PARA MENSAGENS DE GRUPO ---
+      const authorContact = await message.getContact();
+      const groupName = chat.name;
+      const authorName =
+        authorContact.pushname || authorContact.name || message.author;
+
+      logger.info(
+        `[GRUPO] Em "${groupName}": De: ${authorName} | Mensagem: "${message.body}"`
+      );
+
+      if (message.body === '!todos') {
+        let text = '';
+        const mentions = [];
+
+        for (const participant of chat.participants) {
+          const contact = await client.getContactById(
+            participant.id._serialized
+          );
+
+          mentions.push(contact);
+          text += `@${participant.id.user} `;
+        }
+
+        await chat.sendMessage(text, { mentions });
+        logger.info(`[AÇÃO GRUPO] Marquei todos no grupo "${groupName}".`);
+      }
+    } else {
+      // --- LÓGICA PARA MENSAGENS PRIVADAS ---
+      const contact = await message.getContact();
+      const contactName = contact.pushname || contact.name || message.from;
+
+      logger.info(
+        `[PRIVADO] De: ${contactName} | Mensagem: "${message.body}"`
+      );
+
       const messageData = {
         chatId: message.from,
         id: message.id.id,
@@ -127,23 +156,24 @@ client.on('message', async (message) => {
         fromMe: message.fromMe
       };
       db.addMessage(messageData);
-    }
 
-    if (message.body === '!ping') {
-      await message.reply('pong');
-    } else if (
-      message.body === '!pendencias' &&
-      message.from === process.env.WHATSAPP_ADMIN_NUMBER
-    ) {
-      logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
-      // Carrega as conversas do dia para análise
-      const todayStr = new Date().toISOString().slice(0, 10);
-      const chatsDoDia = emailer.loadChatsByDate(todayStr);
+      if (message.body === '!ping') {
+        await message.reply('pong');
+      } else if (
+        message.body === '!pendencias' &&
+        message.from === process.env.WHATSAPP_ADMIN_NUMBER
+      ) {
+        logger.info(
+          'Comando !pendencias recebido. Gerando e enviando resumo...'
+        );
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const chatsDoDia = emailer.loadChatsByDate(todayStr);
 
-      const { generatePendingSummary } = require('./summarizer');
-      const resumoPendencias = generatePendingSummary(chatsDoDia);
+        const { generatePendingSummary } = require('./summarizer');
+        const resumoPendencias = generatePendingSummary(chatsDoDia);
 
-      await client.sendMessage(message.from, resumoPendencias);
+        await client.sendMessage(message.from, resumoPendencias);
+      }
     }
   } catch (err) {
     logger.error(
