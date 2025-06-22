@@ -107,6 +107,7 @@ client.on('ready', () => {
 
 client.on('message', async (msg) => {
   try {
+    logger.info(`MENSAGEM RECEBIDA de ${msg.from}: ${msg.body}`);
     // Armazena a mensagem se não for de grupo
     const chat = await msg.getChat();
     if (!chat.isGroup) {
