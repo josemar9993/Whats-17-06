@@ -6,6 +6,7 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 
 - **Integração com o WhatsApp** através da biblioteca `whatsapp-web.js` com autenticação `LocalAuth`.
 - **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador definido em `WHATSAPP_ADMIN_NUMBER`.
+- **Gerenciador de comandos**: cada comando é um módulo em `src/commands`, carregado dinamicamente na inicialização.
 - **Armazenamento de mensagens**: as mensagens são registradas em um banco SQLite (`data/messages.db`).
 - **Resumos automáticos**: uma tarefa `cron` é executada às 23:50 para salvar as conversas e disparar um e-mail com o resumo do dia.
 - **Envio de e-mail**: utiliza `nodemailer` com uma conta Gmail para enviar resumos completos ou apenas de pendências.
@@ -20,6 +21,7 @@ src/summarizer.js    - Analisa mensagens e gera resumos gerais ou de pendências
 src/emailer.js       - Envio de e-mails com os resumos gerados
 src/logger.js        - Configuração simples de logs com Winston
 src/test-summary.js  - Script exemplo para testar o envio de e-mail
+src/commands/        - Comandos organizados de forma modular
 COMMANDS.md          - Referência rápida dos comandos do bot
 Dockerfile           - Imagem com Chrome e Node para execução em contêiner
 ecosystem.config.js  - Arquivo de configuração do PM2
