@@ -135,7 +135,17 @@ client.on('ready', () => {
 
 client.on('message', async (message) => {
   try {
-    const chat = await message.getChat();
+    let chat;
+    try {
+      chat = await message.getChat();
+    } catch (chatErr) {
+      logger.warn(
+        `Não foi possível obter o chat da mensagem ${
+          message.id?.id || message.id
+        }: ${chatErr.message}`
+      );
+      return;
+    }
     const contact = await message.getContact();
     const contactName =
       contact.pushname || contact.name || (chat.isGroup ? message.author : message.from);
