@@ -39,3 +39,4 @@ Thumbs.db
 # PM2
 *.pid
 *.launch
+/session_data
