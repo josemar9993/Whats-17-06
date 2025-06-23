@@ -52,6 +52,7 @@ Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o Whats
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
 Se o caminho definido em `CHROMIUM_PATH` não existir, instale o Google Chrome ou deixe a variável vazia para usar o Chromium fornecido pelo Puppeteer.
+Se preferir nao instalar o Chrome, certifique-se de que o arquivo `.npmrc` tenha `puppeteer_skip_chromium_download=false` para que o Puppeteer baixe o Chromium automaticamente.
 
 ## Executando localmente
 
