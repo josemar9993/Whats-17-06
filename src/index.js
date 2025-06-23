@@ -120,7 +120,7 @@ client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
-  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 19 * * *';
+  const summaryCron = process.env.DAILY_SUMMARY_CRON || '50 23 * * *';
   cron.schedule(
     summaryCron,
     async () => {
