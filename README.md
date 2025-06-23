@@ -8,7 +8,7 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 - **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador definido em `WHATSAPP_ADMIN_NUMBER`.
 - **Gerenciador de comandos**: cada comando é um módulo em `src/commands`, carregado dinamicamente na inicialização.
 - **Armazenamento de mensagens**: as mensagens são registradas em um banco SQLite (`data/messages.db`).
-- **Resumos automáticos**: uma tarefa `cron` é executada às 19:00 para salvar as conversas e disparar um e-mail com o resumo do dia.
+- **Resumos automáticos**: uma tarefa `cron` é executada às 23:50 para salvar as conversas e disparar um e-mail com o resumo do dia.
 - **Envio de e-mail**: utiliza `nodemailer` com uma conta Gmail para enviar resumos completos ou apenas de pendências.
 - **Servidor Express** para health check, útil em execuções via Docker ou PM2.
 - **Qualidade garantida**: ESLint e Prettier executam no pre-commit e há testes unitários com Jest.
@@ -38,7 +38,7 @@ Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 ```
 WHATSAPP_ADMIN_NUMBER=55999931227@c.us
 DEFAULT_SUMMARY_DAYS=7
-DAILY_SUMMARY_CRON=0 19 * * *
+DAILY_SUMMARY_CRON=50 23 * * *
 WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
