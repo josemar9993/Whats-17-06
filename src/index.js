@@ -56,19 +56,25 @@ logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
   // Persistência da sessão em diretório dedicado
   authStrategy: new LocalAuth({ dataPath: './session_data' }),
-  puppeteer: {
-    headless: true,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu'
-    ],
-    executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome-stable'
-  }
+  puppeteer: (() => {
+    const baseConfig = {
+      headless: true,
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--disable-gpu'
+      ]
+    };
+
+    const chromiumPath = process.env.CHROMIUM_PATH;
+    if (chromiumPath) baseConfig.executablePath = chromiumPath;
+
+    return baseConfig;
+  })()
 });
 
 // Coleção que armazenará os comandos

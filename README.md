@@ -51,6 +51,8 @@ O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automát
 Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o WhatsApp do administrador além do e-mail.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
 
+Se o caminho definido em `CHROMIUM_PATH` não existir, instale o Google Chrome ou deixe a variável vazia para usar o Chromium fornecido pelo Puppeteer.
+
 ## Executando localmente
 
 1. Instale as dependências:
