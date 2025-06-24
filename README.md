@@ -23,7 +23,7 @@ src/logger.js        - Configuração simples de logs com Winston
 src/scripts/test-summary.js  - Script exemplo para testar o envio de e-mail
 src/commands/        - Comandos organizados de forma modular
 COMMANDS.md          - Referência rápida dos comandos do bot
-Dockerfile           - Imagem com Chrome e Node para execução em contêiner
+Dockerfile           - Imagem Node para execução em contêiner
 ecosystem.config.js  - Arquivo de configuração do PM2
 cloudbuild.yaml      - Exemplo de build no Google Cloud Build
 DEPLOYMENT_FIX.md    - Instruções para corrigir erro de branch em plataformas de deploy

@@ -55,23 +55,7 @@ process.on('unhandledRejection', (reason) => {
 logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
   // Persistência da sessão em diretório dedicado
-  authStrategy: new LocalAuth({ dataPath: './session_data' }),
-  puppeteer: (() => {
-    const baseConfig = {
-      headless: true,
-      args: [
-        '--no-sandbox',
-        '--disable-setuid-sandbox',
-        '--disable-dev-shm-usage',
-        '--disable-accelerated-2d-canvas',
-        '--no-first-run',
-        '--no-zygote',
-        '--disable-gpu'
-      ]
-    };
-
-    return baseConfig;
-  })()
+  authStrategy: new LocalAuth({ dataPath: './session_data' })
 });
 
 // Coleção que armazenará os comandos
