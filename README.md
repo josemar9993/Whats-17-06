@@ -43,9 +43,11 @@ WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
 EMAIL_PASSWORD=senha_de_aplicativo
 EMAIL_TO=schieste87@gmail.com
+CHROMIUM_PATH=/usr/bin/google-chrome-stable
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
 O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automático.
+Caso nao possua o Chrome instalado, mantenha o arquivo `.npmrc` com `puppeteer_skip_chromium_download=false` para que o Puppeteer baixe o Chromium automaticamente.
 `DAILY_SUMMARY_CRON` permite ajustar o horário da tarefa de resumo sem alterar o código.
 Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o WhatsApp do administrador além do e-mail.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
