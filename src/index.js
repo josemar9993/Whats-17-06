@@ -70,9 +70,6 @@ const client = new Client({
       ]
     };
 
-    const chromiumPath = process.env.CHROMIUM_PATH;
-    if (chromiumPath) baseConfig.executablePath = chromiumPath;
-
     return baseConfig;
   })()
 });
