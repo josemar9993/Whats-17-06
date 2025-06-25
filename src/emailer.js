@@ -67,7 +67,7 @@ async function sendPendingSummary(chats) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: process.env.EMAIL_TO,
-    subject: '⏳ Resumo de Pendências (Hoje às 23h)',
+    subject: '⏳ Resumo de Pendências (Hoje às 20h)',
     text: resumoTexto
   };
 
