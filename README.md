@@ -46,7 +46,7 @@ DEFAULT_SUMMARY_DAYS=7
 DAILY_SUMMARY_CRON=50 20 * * *
 WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_PASSWORD=senha_de_aplicativo
+EMAIL_PASSWORD=uiydrinsudkzsuqi
 EMAIL_TO=schieste87@gmail.com
 # Porta usada pelo servidor Express opcional
 PORT=8080
