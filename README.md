@@ -10,7 +10,7 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 - **Armazenamento de mensagens**: as mensagens são registradas em um banco SQLite (`data/messages.db`).
 - **Resumos automáticos**: uma tarefa `cron` é executada às 23:50 para salvar as conversas e disparar um e-mail com o resumo do dia.
 - **Envio de e-mail**: utiliza `nodemailer` com uma conta Gmail para enviar resumos completos ou apenas de pendências.
-- **Servidor Express** para health check, útil em execuções via Docker ou PM2.
+- **Servidor Express** para health check, útil em execuções via Docker.
 - **Qualidade garantida**: ESLint e Prettier executam no pre-commit e há testes unitários com Jest.
 
 ## Estrutura do repositório
@@ -24,8 +24,6 @@ src/scripts/test-summary.js  - Script exemplo para testar o envio de e-mail
 src/commands/        - Comandos organizados de forma modular
 COMMANDS.md          - Referência rápida dos comandos do bot
 Dockerfile           - Imagem Node para execução em contêiner
-ecosystem.config.js  - Arquivo de configuração do PM2
-cloudbuild.yaml      - Exemplo de build no Google Cloud Build
 DEPLOYMENT_FIX.md    - Instruções para corrigir erro de branch em plataformas de deploy
 INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 .eslintrc.jsonc      - Regras básicas do ESLint
@@ -82,15 +80,6 @@ docker run -it --rm \
   -v "$(pwd)/auth_data:/app/auth_data" \
   -v "$(pwd)/logs:/app/logs" \
   --name meu-bot-local meu-bot-whatsapp-local:latest
-```
-
-## Uso com PM2
-
-Para gestão do processo em produção pode-se usar o PM2:
-
-```bash
-pm install -g pm2
-pm2 start ecosystem.config.js
 ```
 
 ## Gerando resumos manualmente
