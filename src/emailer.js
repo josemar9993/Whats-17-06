@@ -1,10 +1,10 @@
 // src/emailer.js
 
 // Importações necessárias
+const logger = require('./logger');
 const db = require('./database');
 require('dotenv').config();
 const nodemailer = require('nodemailer');
-const logger = require('./logger');
 
 /**
  * Configura o transportador de e-mail (Gmail) com base nas variáveis de ambiente.
