@@ -5,7 +5,7 @@ Este documento resume todas as instruções fornecidas para o projeto **Whats-17
 ## 1. Tecnologias
 - **Cliente WhatsApp:** `whatsapp-web.js` usando `LocalAuth`.
 - **Servidor Web:** `Express.js` apenas para endpoint de *health check*.
-- **Agendamento de Tarefas:** `node-cron` com execução diária às **19:00**.
+- **Agendamento de Tarefas:** `node-cron` com execução diária às **23:50**.
 - **Envio de E-mails:** `Nodemailer` com conta Gmail.
 - **Logs:** `Winston` para registro de eventos e erros.
 
@@ -15,7 +15,7 @@ Este documento resume todas as instruções fornecidas para o projeto **Whats-17
   - `summarizer.js` – Lógica de análise de mensagens e geração de resumos.
   - `emailer.js` – Envio de e-mails.
   - `logger.js` – Configuração do Winston.
-- Mensagens de cada dia armazenadas em `chats_salvos/chats-YYYY-MM-DD.json`.
+- Mensagens registradas em um banco SQLite localizado em `data/messages.db`.
 - Comandos do bot:
   - `!ping` – responde `pong`.
   - `!pendencias` – restrito ao administrador, gera resumo de pendências.
