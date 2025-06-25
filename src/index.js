@@ -1,3 +1,4 @@
+require('winston-daily-rotate-file');
 require('dotenv').config();
 
 const db = require('./database');
