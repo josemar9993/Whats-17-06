@@ -6,15 +6,10 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "stop": "pm2 stop meu-bot-whatsapp",
-    "restart": "pm2 restart meu-bot-whatsapp --update-env",
-    "delete": "pm2 delete meu-bot-whatsapp",
-    "logs": "pm2 logs meu-bot-whatsapp",
     "test": "jest",
     "lint": "eslint \"src/**/*.js\"",
     "format": "prettier --write \"src/**/*.js\"",
     "prepare": "husky install",
-    "gcp-build": "gcloud builds submit --config cloudbuild.yaml .",
     "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
     "docker:run-local": "docker run -it --rm -v \"$(pwd)/auth_data:/app/auth_data\" -v \"$(pwd)/logs:/app/logs\" --name meu-bot-local meu-bot-whatsapp-local:latest",
     "docker:check-wwebjs": "docker run --rm meu-bot-whatsapp-local:latest node -e \"try { console.log(Object.keys(require('whatsapp-web.js'))); } catch (e) { console.error('Erro ao carregar whatsapp-web.js:', e); }\"",
@@ -40,7 +35,6 @@
     "express": "^4.21.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
-    "pm2": "^6.0.8",
     "qrcode-terminal": "^0.12.0",
     "quickchart-js": "^3.1.0",
     "remove-accents": "^0.5.0",
@@ -63,10 +57,7 @@
     "npm": ">=8.0.0"
   },
   "files": [
-    "ecosystem.config.js",
     "Dockerfile",
-    "cloudbuild.yaml",
-    ".gcloudignore",
     "LICENSE",
     "README.md"
   ],
