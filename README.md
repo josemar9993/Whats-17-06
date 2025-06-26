@@ -50,13 +50,11 @@ EMAIL_PASSWORD=uiydrinsudkzsuqi
 EMAIL_TO=schieste87@gmail.com
 # Porta usada pelo servidor Express opcional
 PORT=8080
-# Opcional: defina se possuir o Chrome instalado
-CHROMIUM_PATH=
 ```
 O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
 O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automático.
 `PORT` permite escolher a porta do endpoint `/health` usado para monitorar o bot.
-Caso nao possua o Chrome instalado, mantenha o arquivo `.npmrc` com `puppeteer_skip_chromium_download=false` para que o Puppeteer baixe o Chromium automaticamente. Se `CHROMIUM_PATH` estiver em branco, o download ocorrerá durante a instalação das dependências.
+Caso nao possua o Chrome instalado, mantenha o arquivo `.npmrc` com `puppeteer_skip_chromium_download=false` para que o Puppeteer baixe o Chromium automaticamente.
 `DAILY_SUMMARY_CRON` permite ajustar o horário da tarefa de resumo sem alterar o código.
 Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o WhatsApp do administrador além do e-mail.
 Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
