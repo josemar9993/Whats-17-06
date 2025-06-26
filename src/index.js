@@ -72,19 +72,6 @@ const client = new Client({
       ]
     };
 
-    const chromiumPath = process.env.CHROMIUM_PATH;
-    if (chromiumPath) {
-      try {
-        if (fs.existsSync(chromiumPath)) {
-          baseConfig.executablePath = chromiumPath;
-        } else {
-          logger.warn(`Caminho definido em CHROMIUM_PATH nao encontrado: ${chromiumPath}`);
-        }
-      } catch (err) {
-        logger.warn(`Falha ao acessar CHROMIUM_PATH (${chromiumPath}): ${err.message}`);
-      }
-    }
-
     return baseConfig;
   })()
 });
