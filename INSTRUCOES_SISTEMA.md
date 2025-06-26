@@ -5,7 +5,7 @@ Este documento resume todas as instruções fornecidas para o projeto **Whats-17
 ## 1. Tecnologias
 - **Cliente WhatsApp:** `whatsapp-web.js` usando `LocalAuth`.
 - **Servidor Web:** `Express.js` apenas para endpoint de *health check*.
-- **Agendamento de Tarefas:** `node-cron` com execução diária às **20:50**.
+- **Agendamento de Tarefas:** `node-cron` com execução diária às **16:00 BRT (19:00 UTC)**.
 - **Envio de E-mails:** `Nodemailer` com conta Gmail.
 - **Logs:** `Winston` para registro de eventos e erros.
 
