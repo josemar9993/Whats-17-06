@@ -119,8 +119,8 @@ client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
-  // Executa todo dia às 19:00 UTC (16:00 BRT) por padrão
-  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 19 * * *';
+  // Executa todo dia às 16:00 BRT por padrão
+  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 16 * * *';
   cron.schedule(
     summaryCron,
     async () => {

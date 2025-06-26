@@ -43,7 +43,7 @@ Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 ```
 WHATSAPP_ADMIN_NUMBER=55999931227@c.us
 DEFAULT_SUMMARY_DAYS=7
-DAILY_SUMMARY_CRON=0 19 * * *
+DAILY_SUMMARY_CRON=0 16 * * *
 WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
 EMAIL_PASSWORD=uiydrinsudkzsuqi
