@@ -122,9 +122,8 @@ async function sendSummaryForDate(dateStr) {
   const chats = loadChatsByDate(dateStr);
   if (!chats || chats.length === 0) {
     logger.info(`Nenhuma conversa encontrada para ${dateStr}`);
-    return '';
   }
-  return await sendDailySummary(chats);
+  return await sendDailySummary(chats || []);
 }
 
 /**
@@ -135,7 +134,6 @@ async function sendSummaryForLastDays(days) {
   const chats = loadChatsForLastDays(days);
   if (chats.length === 0) {
     logger.info(`Nenhuma conversa encontrada nos últimos ${days} dias`);
-    return '';
   }
   return await sendDailySummary(chats);
 }
