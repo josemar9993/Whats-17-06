@@ -87,8 +87,8 @@ async function sendPendingSummary(chats) {
  * Obtém as mensagens de um determinado dia.
  * @param {string} dateStr - data no formato YYYY-MM-DD
  */
-function loadChatsByDate(dateStr) {
-  const data = db.getMessagesByDate(dateStr);
+async function loadChatsByDate(dateStr) {
+  const data = await db.getMessagesByDate(dateStr);
   if (data.length > 0) {
     logger.info(`Carregado ${data.length} mensagens de ${dateStr}`);
   } else {
@@ -103,13 +103,14 @@ function loadChatsByDate(dateStr) {
  * @param {number} days - Quantidade de dias a buscar.
  * @returns {Array} Array de mensagens combinadas.
  */
-function loadChatsForLastDays(days) {
+async function loadChatsForLastDays(days) {
   const allMessages = [];
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().slice(0, 10);
-    allMessages.push(...loadChatsByDate(dateStr));
+    const msgs = await loadChatsByDate(dateStr);
+    allMessages.push(...msgs);
   }
   return allMessages;
 }
@@ -119,7 +120,7 @@ function loadChatsForLastDays(days) {
  * @param {string} dateStr - Data no formato YYYY-MM-DD
  */
 async function sendSummaryForDate(dateStr) {
-  const chats = loadChatsByDate(dateStr);
+  const chats = await loadChatsByDate(dateStr);
   if (!chats || chats.length === 0) {
     logger.info(`Nenhuma conversa encontrada para ${dateStr}`);
     return '';
@@ -132,7 +133,7 @@ async function sendSummaryForDate(dateStr) {
  * @param {number} days - Quantidade de dias a incluir no resumo.
  */
 async function sendSummaryForLastDays(days) {
-  const chats = loadChatsForLastDays(days);
+  const chats = await loadChatsForLastDays(days);
   if (chats.length === 0) {
     logger.info(`Nenhuma conversa encontrada nos últimos ${days} dias`);
     return '';

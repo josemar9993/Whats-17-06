@@ -180,7 +180,7 @@ client.on('message', async (message) => {
       body: message.body,
       fromMe: message.fromMe
     };
-    db.addMessage(messageData);
+    await db.addMessage(messageData);
 
     const prefix = '!';
     if (!message.body.startsWith(prefix) || message.fromMe) return;
@@ -229,7 +229,7 @@ client.on('message_create', async (message) => {
       body: message.body,
       fromMe: true
     };
-    db.addMessage(messageData);
+    await db.addMessage(messageData);
   }
 });
 
