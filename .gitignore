@@ -1,4 +1,24 @@
-# Dependências do Node.js
+## Arquivos de log e do PM2
+*.log
+/logs/
+/root/.pm2/
+
+# Dependências do Node.js (CRÍTICO!)
+# Esta pasta pode ter mais de 200MB e nunca deve ser enviada.
+node_modules/
+
+# Arquivos de ambiente com senhas e chaves (CRÍTICO!)
+.env
+
+# Arquivos de sessão do WhatsApp
+# Podem conter informações sensíveis de autenticação
+.wwebjs_auth/
+session.json
+session/
+
+# Arquivos de sistema e de cache
+.DS_Store
+npm-debug.log* Dependências do Node.js
 /node_modules
 
 # Dados de sessão e cache do WhatsApp
@@ -40,3 +60,27 @@ Thumbs.db
 *.pid
 *.launch
 /session_data
+ 
+
+
+# Arquivos de log e do PM2
+*.log
+/logs/
+/root/.pm2/
+
+# Dependências do Node.js (CRÍTICO!)
+# Esta pasta pode ter mais de 200MB e nunca deve ser enviada.
+node_modules/
+
+# Arquivos de ambiente com senhas e chaves (CRÍTICO!)
+.env
+
+# Arquivos de sessão do WhatsApp
+# Podem conter informações sensíveis de autenticação
+.wwebjs_auth/
+session.json
+session/
+
+# Arquivos de sistema e de cache
+.DS_Store
+npm-debug.log*
