@@ -59,8 +59,8 @@ client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
-  // Executa todo dia no horário definido em DAILY_SUMMARY_CRON, ou às 23:00 por padrão.
-  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 23 * * *';
+  // Executa todo dia às 16h, horário de Brasília.
+  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 16 * * *';
   
   cron.schedule(
     summaryCron,
@@ -96,23 +96,31 @@ client.on('ready', () => {
     }
   );
 
-  logger.info(`[CRON] Tarefa de resumo diário agendada com a expressão: "${summaryCron}".`);
+  logger.info(`[CRON] Tarefa de resumo diário agendada com a expressão: "${summaryCron}" no fuso horário de São Paulo.`);
 });
 
 
 client.on('message', async (msg) => {
-  // Ignora mensagens do próprio bot para evitar loops
-  if (msg.fromMe) {
+  const prefix = process.env.COMMAND_PREFIX || '!';
+  const adminContactId = process.env.ADMIN_WHATSAPP_ID;
+
+  const isCommand = msg.body.startsWith(prefix);
+  const isAdmin = msg.from === adminContactId;
+
+  // Ignora mensagens do próprio bot, a menos que seja um comando do admin.
+  // Isso é crucial para cenários de multi-dispositivo onde o bot e o admin são o mesmo número.
+  if (msg.fromMe && !(isCommand && isAdmin)) {
     return;
   }
 
   try {
-    // Salva a mensagem no banco de dados
-    await db.addMessageFromWhatsapp(msg);
+    // Salva a mensagem recebida no banco de dados (APENAS se não for do bot)
+    if (!msg.fromMe) {
+      await db.addMessageFromWhatsapp(msg);
+    }
 
     // Ignora mensagens que não são comandos ou que vêm de status
-    const prefix = process.env.COMMAND_PREFIX || '!';
-    if (!msg.body.startsWith(prefix) || msg.from === 'status@broadcast') {
+    if (!isCommand || msg.from === 'status@broadcast') {
       return;
     }
 
