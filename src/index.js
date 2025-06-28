@@ -11,34 +11,29 @@ const { sendSummaryForDate } = require('./emailer');
 
 logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
-  authStrategy: new LocalAuth({ clientId: 'client-one' }),
-  puppeteer: { 
-    executablePath: '/usr/bin/google-chrome',
-    args: ['--no-sandbox', '--disable-setuid-sandbox'] 
+  authStrategy: new LocalAuth(),
+  puppeteer: {
+    args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
 
-// Coleção que armazenará os comandos
-client.commands = new Collection();
+// Carregar comandos
+client.commands = new Map();
+const commandFolders = fs.readdirSync(path.join(__dirname, 'commands'));
 
-// Carrega os comandos dinamicamente
-const commandsPath = path.join(__dirname, 'commands');
-if (fs.existsSync(commandsPath)) {
-  const commandFolders = fs.readdirSync(commandsPath);
-  for (const folder of commandFolders) {
-    const folderPath = path.join(commandsPath, folder);
-    const commandFiles = fs
-      .readdirSync(folderPath)
-      .filter((file) => file.endsWith('.js'));
-    for (const file of commandFiles) {
-      const filePath = path.join(folderPath, file);
-      const command = require(filePath);
-      if (command.name && command.execute) {
-        client.commands.set(command.name, command);
-        logger.info(`[COMANDO CARREGADO] ${command.name}`);
-      } else {
-        logger.warn(`Comando em ${filePath} ignorado (formato inválido).`);
-      }
+for (const folder of commandFolders) {
+  const folderPath = path.join(commandsPath, folder);
+  const commandFiles = fs
+    .readdirSync(folderPath)
+    .filter((file) => file.endsWith('.js'));
+  for (const file of commandFiles) {
+    const filePath = path.join(folderPath, file);
+    const command = require(filePath);
+    if (command.name && command.execute) {
+      client.commands.set(command.name, command);
+      logger.info(`[COMANDO CARREGADO] ${command.name}`);
+    } else {
+      logger.warn(`Comando em ${filePath} ignorado (formato inválido).`);
     }
   }
 }
