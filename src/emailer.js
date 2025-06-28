@@ -1,4 +1,4 @@
-y;// src/emailer.js
+// src/emailer.js
 
 // Importações necessárias
 const logger = require('./logger');
@@ -22,11 +22,8 @@ const transporter = nodemailer.createTransport({
   tls: {
     rejectUnauthorized: false
   },
-  connectionTimeout: 60000,
-  greetingTimeout: 30000,
-  
-
-socketTimeout: 60000
+  timeout: 30000,
+  connectionTimeout: 30000
 });
 
 /**
