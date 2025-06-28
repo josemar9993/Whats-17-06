@@ -99,7 +99,7 @@ function getMessagesByDate(dateStr) {
         senderName: r.senderName,
         type: r.type,
         body: r.body,
-        fromMe: !!r.fromMe
+        fromMe: r.fromMe === 1,
       }));
       resolve(messages);
     });
@@ -160,4 +160,9 @@ function closeDatabase() {
   });
 }
 
-module.exports = { addMessage, addMessageFromWhatsapp, getMessagesByDate, getChatsByDate, getMessagesForLastDays, closeDatabase };
+module.exports = {
+  addMessage,
+  addMessageFromWhatsapp,
+  getMessagesByDate,
+  db, // Exportando a instância do DB se necessário em outros lugares
+};

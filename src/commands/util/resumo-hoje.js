@@ -24,7 +24,7 @@ module.exports = {
 
     try {
       await msg.reply('Gerando o resumo de hoje, por favor aguarde...');
-      const chats = await db.loadChatsByDate(today);
+      const chats = await db.getMessagesByDate(today);
 
       if (!chats || chats.length === 0) {
         const replyText = `Nenhuma conversa encontrada para hoje (${today}).`;
