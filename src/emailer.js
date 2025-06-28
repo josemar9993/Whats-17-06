@@ -28,22 +28,24 @@ const transporter = nodemailer.createTransport({
 
 /**
  * Envia um e-mail de forma genérica.
- * @param {string} subject - O assunto do e-mail.
- * @param {string} text - O corpo do e-mail em texto plano.
+ * @param {object} mailDetails - Objeto com os detalhes do e-mail (to, subject, text, html).
  */
-async function sendEmail(subject, text) {
+async function sendEmail(mailDetails) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
-    to: process.env.EMAIL_TO,
-    subject: subject,
-    text: text
+    to: mailDetails.to || process.env.EMAIL_TO, // Usa o 'to' dos detalhes ou o padrão
+    subject: mailDetails.subject,
+    text: mailDetails.text,
+    html: mailDetails.html, // Adiciona suporte a HTML
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.info(`E-mail "${subject}" enviado com sucesso!`);
+    logger.info(`E-mail "${mailOptions.subject}" enviado com sucesso para ${mailOptions.to}!`);
   } catch (error) {
-    logger.error(`Erro ao enviar o e-mail "${subject}":`, error);
+    // Melhora o log para garantir que a mensagem de erro seja uma string.
+    const errorMessage = error.message || error.toString();
+    logger.error(`Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`);
     // Re-lançar o erro pode ser útil se o chamador precisar saber que falhou
     throw error;
   }
@@ -66,7 +68,11 @@ async function sendDailySummary(chats) {
   const resumoTexto = await generateSummary(chats);
   logger.info('Resumo diário gerado.');
   
-  await sendEmail('📋 Resumo Diário de Conversas', resumoTexto);
+  await sendEmail({
+    subject: '📋 Resumo Diário de Conversas',
+    text: resumoTexto,
+    html: `<pre>${resumoTexto}</pre>`,
+  });
   
   return resumoTexto;
 }
@@ -80,7 +86,11 @@ async function sendPendingSummary(chats) {
   const resumoTexto = generatePendingSummary(chats);
   logger.info('Resumo de pendências gerado.');
   
-  await sendEmail('⏳ Resumo de Pendências', resumoTexto);
+  await sendEmail({
+    subject: '⏳ Resumo de Pendências',
+    text: resumoTexto,
+    html: `<pre>${resumoTexto}</pre>`,
+  });
 }
 
 /**
