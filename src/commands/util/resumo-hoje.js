@@ -43,7 +43,8 @@ module.exports = {
     }
 
     try {
-      await msg.reply(`Gerando o resumo do dia ${friendlyDate}, por favor aguarde...`);
+      // Usa client.sendMessage em vez de reply para maior robustez
+      await msg.client.sendMessage(adminContactId, `Gerando o resumo do dia ${friendlyDate}, por favor aguarde...`);
       const chats = await db.getMessagesByDate(dateStringForDb);
 
       if (!chats || chats.length === 0) {
