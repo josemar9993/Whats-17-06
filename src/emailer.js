@@ -1,4 +1,4 @@
-y// src/emailer.js
+y;// src/emailer.js
 
 // Importações necessárias
 const logger = require('./logger');
