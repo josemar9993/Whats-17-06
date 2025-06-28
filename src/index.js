@@ -8,6 +8,8 @@ const cron = require('node-cron');
 const logger = require('./logger');
 const db = require('./database');
 const { sendSummaryForDate } = require('./emailer');
+const fs = require('fs');
+const path = require('path');
 
 logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
@@ -19,7 +21,8 @@ const client = new Client({
 
 // Carregar comandos
 client.commands = new Map();
-const commandFolders = fs.readdirSync(path.join(__dirname, 'commands'));
+const commandsPath = path.join(__dirname, 'commands'); // Definir o caminho base para os comandos
+const commandFolders = fs.readdirSync(commandsPath);
 
 for (const folder of commandFolders) {
   const folderPath = path.join(commandsPath, folder);
@@ -56,21 +59,19 @@ client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
-  // Executa todo dia às 16:00 BRT por padrão
-  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 16 * * *';
+  // Executa todo dia no horário definido em DAILY_SUMMARY_CRON, ou às 23:00 por padrão.
+  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 23 * * *';
+  
   cron.schedule(
     summaryCron,
     async () => {
-      logger.info('[CRON] Executando tarefa de resumo diário...');
-      const days = parseInt(process.env.DEFAULT_SUMMARY_DAYS || '1', 10);
-      const resumo = await emailer.sendSummaryForLastDays(days);
-      if (process.env.WHATSAPP_NOTIFY === 'true') {
-        try {
-          await client.sendMessage(process.env.WHATSAPP_ADMIN_NUMBER, resumo);
-          logger.info('Resumo diário enviado também via WhatsApp.');
-        } catch (err) {
-          logger.error('Falha ao enviar resumo via WhatsApp:', err);
-        }
+      logger.info(`[CRON] Executando tarefa de resumo diário agendada para "${summaryCron}"...`);
+      try {
+        const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+        await sendSummaryForDate(today);
+        logger.info('[CRON] Tarefa de resumo diário concluída com sucesso.');
+      } catch (error) {
+        logger.error('[CRON] Erro ao executar a tarefa de resumo diário:', error.message);
       }
     },
     {
@@ -79,31 +80,48 @@ client.on('ready', () => {
     }
   );
 
-  logger.info(`[CRON] Tarefa de resumo diário agendada para "${summaryCron}".`);
-
-  // Agendamento do resumo diário
-  // Correção: Adicionado timezone para garantir a execução no horário de Brasília.
-  // Refatoração: Simplificado para usar a função sendSummaryForDate, que já contém a lógica necessária.
-  cron.schedule('0 23 * * *', async () => {
-    logger.info('Executando tarefa agendada: envio do resumo diário.');
-    try {
-      const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-      await sendSummaryForDate(today);
-      // A função sendSummaryForDate já registra se o e-mail foi enviado ou não.
-      logger.info('Tarefa agendada de resumo diário concluída.');
-    } catch (error) {
-      // O erro já é logado dentro de sendEmail, mas podemos logar aqui também para o contexto do cron.
-      logger.error('Erro ao executar a tarefa agendada de resumo diário:', error.message);
-    }
-  }, {
-    scheduled: true,
-    timezone: "America/Sao_Paulo"
-  });
+  logger.info(`[CRON] Tarefa de resumo diário agendada com a expressão: "${summaryCron}".`);
 });
 
+
 client.on('message', async (msg) => {
-  await db.addMessageFromWhatsapp(msg);
-  // A lógica de comando foi movida para o handler
+  try {
+    // Salva a mensagem no banco de dados
+    await db.addMessageFromWhatsapp(msg);
+
+    // Ignora mensagens que não são comandos ou que vêm de status
+    const prefix = process.env.COMMAND_PREFIX || '!';
+    if (!msg.body.startsWith(prefix) || msg.from === 'status@broadcast') {
+      return;
+    }
+
+    const args = msg.body.slice(prefix.length).trim().split(/ +/);
+    const commandName = args.shift().toLowerCase();
+
+    const command = client.commands.get(commandName);
+
+    if (!command) {
+      // Responde apenas se a menção for direta ou em grupos
+      const chat = await msg.getChat();
+      if (!chat.isGroup || msg.mentionedIds.includes(client.info.wid._serialized)) {
+         await msg.reply('Comando não reconhecido. Digite `!ajuda` para ver a lista de comandos.');
+      }
+      return;
+    }
+
+    // Executa o comando
+    await command.execute(msg, args);
+    logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName}`);
+
+  } catch (error) {
+    logger.error(`Erro ao processar mensagem: ${error.message}`, error);
+    // Evita crashar o bot por um erro em um único comando/mensagem
+    try {
+      await msg.reply('Ocorreu um erro ao tentar executar esse comando.');
+    } catch (e) {
+      logger.error('Erro ao enviar mensagem de erro para o usuário:', e);
+    }
+  }
 });
 
 // Registra mensagens enviadas pelo bot
