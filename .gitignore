@@ -84,3 +84,4 @@ session/
 # Arquivos de sistema e de cache
 .DS_Store
 npm-debug.log*
+.env
