@@ -76,13 +76,16 @@ client.on('ready', () => {
         }
 
         const summaryText = await createDailySummary(chats); // Corrigido para createDailySummary
-        const adminContactId = process.env.ADMIN_WHATSAPP_ID;
+        
+        // Pega a lista de admins e envia para o primeiro da lista.
+        const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
+        const primaryAdminId = adminIds[0];
 
-        if (adminContactId) {
-          await client.sendMessage(adminContactId, summaryText); // Simplificado para enviar apenas o resumo formatado
-          logger.info(`[CRON] Resumo diário enviado via WhatsApp para ${adminContactId}.`);
+        if (primaryAdminId) {
+          await client.sendMessage(primaryAdminId, summaryText);
+          logger.info(`[CRON] Resumo diário enviado via WhatsApp para o admin primário ${primaryAdminId}.`);
         } else {
-          logger.warn('[CRON] A variável de ambiente ADMIN_WHATSAPP_ID não está definida. O resumo não foi enviado.');
+          logger.warn('[CRON] A variável de ambiente ADMIN_WHATSAPP_IDS não está definida. O resumo não foi enviado.');
         }
 
         logger.info('[CRON] Tarefa de resumo diário concluída com sucesso.');
@@ -102,13 +105,13 @@ client.on('ready', () => {
 
 client.on('message', async (msg) => {
   const prefix = process.env.COMMAND_PREFIX || '!';
-  const adminContactId = process.env.ADMIN_WHATSAPP_ID;
+  const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
 
   const isCommand = msg.body.startsWith(prefix);
-  const isAdmin = msg.from === adminContactId;
+  // Verifica se o remetente está na lista de administradores
+  const isAdmin = adminIds.includes(msg.from);
 
-  // Ignora mensagens do próprio bot, a menos que seja um comando do admin.
-  // Isso é crucial para cenários de multi-dispositivo onde o bot e o admin são o mesmo número.
+  // Ignora mensagens do próprio bot, a menos que seja um comando de um admin.
   if (msg.fromMe && !(isCommand && isAdmin)) {
     return;
   }

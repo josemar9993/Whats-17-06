@@ -6,20 +6,24 @@ module.exports = {
   name: 'resumo-hoje',
   description: 'Envia o resumo das conversas de um dia específico (ou de hoje) para o administrador.',
   async execute(msg, args) { // Adiciona args
-    const adminContactId = process.env.ADMIN_WHATSAPP_ID;
+    const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
     const senderId = msg.from;
 
-    // Apenas o administrador pode executar este comando
-    if (senderId !== adminContactId) {
+    // Se a lista de admins estiver vazia, ninguém pode usar.
+    if (adminIds.length === 0 || !adminIds[0]) {
+        logger.warn('Comando !resumo-hoje: ADMIN_WHATSAPP_IDS não definido no .env.');
+        // Não envia resposta para evitar spam
+        return;
+    }
+
+    // Apenas administradores podem executar este comando
+    if (!adminIds.includes(senderId)) {
       await msg.reply('Você não tem permissão para usar este comando.');
       return;
     }
 
-    if (!adminContactId) {
-      logger.warn('Comando !resumo-hoje: ADMIN_WHATSAPP_ID não definido.');
-      await msg.reply('O ID do administrador não está configurado no servidor. Não posso enviar o resumo.');
-      return;
-    }
+    // O ID do administrador que receberá a mensagem é quem executou o comando
+    const adminContactId = senderId;
 
     // Verifica se uma data foi fornecida, senão usa a data atual
     let dateStringForDb;
