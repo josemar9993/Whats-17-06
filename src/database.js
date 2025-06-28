@@ -24,7 +24,6 @@ db.serialize(() => {
     )
   `);
 
-  // Adicionar índice para otimizar consultas por data
   db.run(`CREATE INDEX IF NOT EXISTS idx_isoTimestamp ON messages (isoTimestamp)`);
 });
 
@@ -56,20 +55,13 @@ function addMessage(msg) {
   });
 }
 
-/**
- * Extrai dados de uma mensagem do whatsapp-web.js e a salva no banco.
- * @param {import('whatsapp-web.js').Message} msg - O objeto da mensagem do WhatsApp.
- */
 async function addMessageFromWhatsapp(msg) {
   const chat = await msg.getChat();
   let senderName;
 
   if (chat.isGroup) {
-    // Em grupos, o 'author' é o ID de quem enviou a mensagem.
-    // 'notifyName' é geralmente o nome mais confiável.
     senderName = msg._data.notifyName || msg.author;
   } else {
-    // Em conversas privadas, o 'from' é o ID do contato.
     const contact = await msg.getContact();
     senderName = contact.pushname || contact.name || msg.from;
   }
@@ -88,15 +80,8 @@ async function addMessageFromWhatsapp(msg) {
   return addMessage(messageData);
 }
 
-/**
- * Busca todas as mensagens de uma data específica.
- * @param {string} dateStr - A data no formato 'YYYY-MM-DD'.
- * @returns {Promise<Array>} Uma promessa que resolve para um array de mensagens.
- */
 function getMessagesByDate(dateStr) {
   return new Promise((resolve, reject) => {
-    // Usar a coluna isoTimestamp (texto em UTC) para evitar problemas de fuso horário.
-    // O padrão `dateStr%` encontrará todas as entradas para aquele dia.
     const query = `
       SELECT * FROM messages
       WHERE isoTimestamp LIKE ?
@@ -121,11 +106,6 @@ function getMessagesByDate(dateStr) {
   });
 }
 
-/**
- * Obtém uma lista de IDs de chat únicos que tiveram mensagens em uma data específica.
- * @param {string} dateStr - A data no formato 'YYYY-MM-DD'.
- * @returns {Promise<string[]>} Uma promessa que resolve para um array de IDs de chat.
- */
 function getChatsByDate(dateStr) {
   return new Promise((resolve, reject) => {
     const query = `
@@ -141,11 +121,6 @@ function getChatsByDate(dateStr) {
   });
 }
 
-/**
- * Busca todas as mensagens dos últimos N dias.
- * @param {number} days - O número de dias para buscar.
- * @returns {Promise<Array>} Uma promessa que resolve para um array de mensagens.
- */
 function getMessagesForLastDays(days) {
   return new Promise((resolve, reject) => {
     const date = new Date();
