@@ -57,6 +57,38 @@ function addMessage(msg) {
 }
 
 /**
+ * Extrai dados de uma mensagem do whatsapp-web.js e a salva no banco.
+ * @param {import('whatsapp-web.js').Message} msg - O objeto da mensagem do WhatsApp.
+ */
+async function addMessageFromWhatsapp(msg) {
+  const chat = await msg.getChat();
+  let senderName;
+
+  if (chat.isGroup) {
+    // Em grupos, o 'author' é o ID de quem enviou a mensagem.
+    // 'notifyName' é geralmente o nome mais confiável.
+    senderName = msg._data.notifyName || msg.author;
+  } else {
+    // Em conversas privadas, o 'from' é o ID do contato.
+    const contact = await msg.getContact();
+    senderName = contact.pushname || contact.name || msg.from;
+  }
+
+  const messageData = {
+    id: msg.id.id,
+    chatId: chat.id._serialized,
+    timestamp: msg.timestamp,
+    isoTimestamp: new Date(msg.timestamp * 1000).toISOString(),
+    senderName: senderName,
+    type: msg.type,
+    body: msg.body,
+    fromMe: msg.fromMe,
+  };
+
+  return addMessage(messageData);
+}
+
+/**
  * Busca todas as mensagens de uma data específica.
  * @param {string} dateStr - A data no formato 'YYYY-MM-DD'.
  * @returns {Promise<Array>} Uma promessa que resolve para um array de mensagens.
@@ -153,4 +185,4 @@ function closeDatabase() {
   });
 }
 
-module.exports = { addMessage, getMessagesByDate, getChatsByDate, getMessagesForLastDays, closeDatabase };
+module.exports = { addMessage, addMessageFromWhatsapp, getMessagesByDate, getChatsByDate, getMessagesForLastDays, closeDatabase };
