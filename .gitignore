@@ -1,87 +1,40 @@
-## Arquivos de log e do PM2
-*.log
-/logs/
-/root/.pm2/
-
-# Dependências do Node.js (CRÍTICO!)
-# Esta pasta pode ter mais de 200MB e nunca deve ser enviada.
+# Dependências
 node_modules/
 
-# Arquivos de ambiente com senhas e chaves (CRÍTICO!)
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de ambiente
 .env
-
-# Arquivos de sessão do WhatsApp
-# Podem conter informações sensíveis de autenticação
-.wwebjs_auth/
-session.json
-session/
-
-# Arquivos de sistema e de cache
-.DS_Store
-npm-debug.log* Dependências do Node.js
-/node_modules
+.env.*
+!.env.example
 
 # Dados de sessão e cache do WhatsApp
 /auth_data
-/.wwebjs_auth
-/.wwebjs_cache
+.wwebjs_auth/
+.wwebjs_cache/
+session/
+session.json
+session_data/
 
-# Logs
-/logs/
-*.log
+# Banco de dados
+data/
 
-# Arquivos de ambiente (contém senhas)
-.env
-.env.*
-!.env.example
-.env
-.env.*
-!.env.example
-
-# Pastas de build ou dados temporários
-/data
-
-# Arquivos específicos de sistema operacional
+# Arquivos de sistema operacional
 .DS_Store
 Thumbs.db
 ._*
 .Spotlight-V100
 .Trashes
 ehthumbs.db
-Thumbs.db
 
-# Service account keys (NUNCA comite chaves de conta de serviço!)
-*.json # Seja mais específico se tiver outros JSONs que DEVEM ser comitados
-# Exemplo mais específico:
-# service-account-key.json
-# *credentials*.json
+# Chaves de conta de serviço
+*.json
 
 # PM2
 *.pid
 *.launch
-/session_data
- 
-
-
-# Arquivos de log e do PM2
-*.log
-/logs/
-/root/.pm2/
-
-# Dependências do Node.js (CRÍTICO!)
-# Esta pasta pode ter mais de 200MB e nunca deve ser enviada.
-node_modules/
-
-# Arquivos de ambiente com senhas e chaves (CRÍTICO!)
-.env
-
-# Arquivos de sessão do WhatsApp
-# Podem conter informações sensíveis de autenticação
-.wwebjs_auth/
-session.json
-session/
-
-# Arquivos de sistema e de cache
-.DS_Store
-npm-debug.log*
-.env

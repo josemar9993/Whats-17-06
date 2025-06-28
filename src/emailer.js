@@ -17,13 +17,14 @@ const transporter = nodemailer.createTransport({
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASSWORD
+    pass: process.env.EMAIL_PASS
   },
   tls: {
     rejectUnauthorized: false
   },
-  timeout: 30000,
-  connectionTimeout: 30000
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000
 });
 
 /**
