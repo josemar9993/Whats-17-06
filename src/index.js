@@ -7,7 +7,7 @@ const express = require('express');
 const cron = require('node-cron');
 const logger = require('./logger');
 const db = require('./database');
-const { generateSummary } = require('./summarizer');
+const { createDailySummary } = require('./summarizer'); // Corrigido para createDailySummary
 const fs = require('fs');
 const path = require('path');
 
@@ -68,20 +68,18 @@ client.on('ready', () => {
       logger.info(`[CRON] Executando tarefa de resumo diário agendada para "${summaryCron}"...`);
       try {
         const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-        const chats = await db.loadChatsByDate(today);
+        const chats = await db.getMessagesByDate(today); // Corrigido para getMessagesByDate
 
         if (!chats || chats.length === 0) {
           logger.info(`[CRON] Nenhuma conversa encontrada para ${today}, resumo não gerado.`);
           return; // Sai se não houver chats
         }
 
-        const summaryText = await generateSummary(chats);
+        const summaryText = await createDailySummary(chats); // Corrigido para createDailySummary
         const adminContactId = process.env.ADMIN_WHATSAPP_ID;
 
         if (adminContactId) {
-          await client.sendMessage(adminContactId, `*Resumo Diário - ${today}*
-
-${summaryText}`);
+          await client.sendMessage(adminContactId, summaryText); // Simplificado para enviar apenas o resumo formatado
           logger.info(`[CRON] Resumo diário enviado via WhatsApp para ${adminContactId}.`);
         } else {
           logger.warn('[CRON] A variável de ambiente ADMIN_WHATSAPP_ID não está definida. O resumo não foi enviado.');
