@@ -110,6 +110,7 @@ async function sendSummaryForLastDays(days) {
 }
 
 module.exports = {
+  sendEmail,
   sendDailySummary,
   sendPendingSummary,
   sendSummaryForDate,

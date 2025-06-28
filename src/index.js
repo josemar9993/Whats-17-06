@@ -166,4 +166,4 @@ app.listen(port, () => {
   logger.info(`Servidor de health check ouvindo na porta ${port}`);
 });
 
-// Adicionando comentário para forçar o commit
+// Forçando a atualização para limpar os erros do servidor.
