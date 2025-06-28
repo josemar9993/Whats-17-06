@@ -34,7 +34,7 @@
     "express": "^4.21.2",
     "node-cron": "^3.0.3",
     "nodemailer": "^6.9.9",
-    "puppeteer": "^22.10.0",
+    "puppeteer": "^19.11.1",
     "qrcode-terminal": "^0.12.0",
     "quickchart-js": "^3.1.0",
     "remove-accents": "^0.5.0",
