@@ -96,38 +96,28 @@ async function createDailySummary(allMessages) {
     return 'Nenhuma mensagem registrada hoje para resumir.';
   }
 
-  // Agrupa mensagens por chat de forma assíncrona
+  // Agrupa mensagens por chat, garantindo que o nome do contato seja capturado
   const chats = {};
-  for (const msg of allMessages) {
-      const chatId = msg.chatId;
-      if (!chats[chatId]) {
-          let contactName = chatId.replace('@c.us', '');
-          try {
-              // A função getChat pode não estar disponível em todos os objetos de mensagem
-              if (typeof msg.getChat === 'function') {
-                  const chatInfo = await msg.getChat();
-                  contactName = chatInfo.name || contactName;
-              }
-          } catch (error) {
-              console.error(`Erro ao obter informações do chat para ${chatId}:`, error);
-          }
-          chats[chatId] = {
-              chatId: chatId,
-              name: contactName,
-              messages: []
-          };
+  for (const message of allMessages) {
+    const chatId = message.chatId;
+    if (!chats[chatId]) {
+      chats[chatId] = {
+        chatId: chatId,
+        // Usa o nome do remetente da mensagem; se não houver, usa o ID como fallback.
+        name: message.senderName || chatId.replace('@c.us', ''),
+        messages: [],
+      };
+    } else {
+      // Se o nome atual for apenas o número, tenta atualizar com um nome real de uma mensagem posterior.
+      if (chats[chatId].name === chatId.replace('@c.us', '') && message.senderName) {
+        chats[chatId].name = message.senderName;
       }
-      chats[chatId].messages.push(msg);
+    }
+    chats[chatId].messages.push(message);
   }
 
-
-  const chatList = Object.values(chats);
-
-  if (chatList.length === 0) {
-    return 'Nenhuma conversa encontrada para resumir hoje.';
-  }
-
-  const analyzedChats = chatList.map(analyzeChatMetrics);
+  // Mapeia os chats agrupados para análise de métricas
+  const analyzedChats = Object.values(chats).map(analyzeChatMetrics);
 
   // Monta o resumo formatado para WhatsApp
   let summary = `*Resumo Diário de Atividades - ${new Date().toLocaleDateString('pt-BR')}*\n\n`;
