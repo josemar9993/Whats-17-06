@@ -85,6 +85,11 @@ client.on('ready', () => {
 
 
 client.on('message', async (msg) => {
+  // Ignora mensagens do próprio bot para evitar loops
+  if (msg.fromMe) {
+    return;
+  }
+
   try {
     // Salva a mensagem no banco de dados
     await db.addMessageFromWhatsapp(msg);
