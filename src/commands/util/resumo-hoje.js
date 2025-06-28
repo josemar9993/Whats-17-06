@@ -1,5 +1,5 @@
 const db = require('../../database');
-const { generateSummary } = require('../../summarizer');
+const { createDailySummary } = require('../../summarizer'); // Corrigido
 const logger = require('../../logger');
 
 module.exports = {
@@ -32,9 +32,9 @@ module.exports = {
         return;
       }
 
-      const summaryText = await generateSummary(chats);
+      const summaryText = await createDailySummary(chats); // Corrigido
       
-      await msg.client.sendMessage(adminContactId, `*Resumo Diário - ${today}*\n\n${summaryText}`);
+      await msg.client.sendMessage(adminContactId, summaryText); // Simplificado
       logger.info(`Resumo de hoje enviado manualmente para ${adminContactId} a pedido de ${msg.from}.`);
 
     } catch (error) {

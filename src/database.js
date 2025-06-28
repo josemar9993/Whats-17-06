@@ -107,6 +107,7 @@ function getMessagesByDate(dateStr) {
 }
 
 module.exports = {
+  addMessage,
   addMessageFromWhatsapp,
   getMessagesByDate,
 };
