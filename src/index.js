@@ -165,3 +165,5 @@ app.get('/health', (req, res) => {
 app.listen(port, () => {
   logger.info(`Servidor de health check ouvindo na porta ${port}`);
 });
+
+// Adicionando comentário para forçar o commit
