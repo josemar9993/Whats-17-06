@@ -106,63 +106,7 @@ function getMessagesByDate(dateStr) {
   });
 }
 
-function getChatsByDate(dateStr) {
-  return new Promise((resolve, reject) => {
-    const query = `
-      SELECT DISTINCT chatId FROM messages
-      WHERE isoTimestamp LIKE ?
-    `;
-    db.all(query, [`${dateStr}%`], (err, rows) => {
-      if (err) {
-        return reject(err);
-      }
-      resolve(rows.map(r => r.chatId));
-    });
-  });
-}
-
-function getMessagesForLastDays(days) {
-  return new Promise((resolve, reject) => {
-    const date = new Date();
-    date.setDate(date.getDate() - days);
-    const dateStr = date.toISOString().slice(0, 10);
-
-    const query = `
-      SELECT * FROM messages
-      WHERE isoTimestamp >= ?
-      ORDER BY timestamp
-    `;
-    db.all(query, [dateStr], (err, rows) => {
-      if (err) {
-        return reject(err);
-      }
-      const messages = rows.map((r) => ({
-        id: r.id,
-        chatId: r.chatId,
-        timestamp: r.timestamp,
-        isoTimestamp: r.isoTimestamp,
-        senderName: r.senderName,
-        type: r.type,
-        body: r.body,
-        fromMe: !!r.fromMe
-      }));
-      resolve(messages);
-    });
-  });
-}
-
-function closeDatabase() {
-  return new Promise((resolve) => {
-    db.close((err) => {
-      if (err) console.error('Erro ao fechar o banco:', err);
-      resolve();
-    });
-  });
-}
-
 module.exports = {
-  addMessage,
   addMessageFromWhatsapp,
   getMessagesByDate,
-  db, // Exportando a instância do DB se necessário em outros lugares
 };

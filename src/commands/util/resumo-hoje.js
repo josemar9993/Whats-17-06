@@ -5,7 +5,7 @@ const logger = require('../../logger');
 module.exports = {
   name: 'resumo-hoje',
   description: 'Envia o resumo das conversas de hoje para o administrador.',
-  async execute(msg, args) {
+  async execute(msg) {
     const today = new Date().toISOString().slice(0, 10);
     const adminContactId = process.env.ADMIN_WHATSAPP_ID;
     const senderId = msg.from;

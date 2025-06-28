@@ -3,7 +3,6 @@
 // Importa bibliotecas de NLP para análise de sentimentos e detecção de tópicos
 const Sentiment = require('sentiment');
 const sentiment = new Sentiment();
-const nlp = require('compromise');
 const removeAccents = require('remove-accents');
 
 const KEYWORD_THEMES = [
@@ -29,32 +28,10 @@ const KEYWORD_THEMES = [
   }
 ];
 
-/**
- * Normaliza o input de chats para um formato padrão.
- * @param {Array<Object>} chats - Lista de chats ou mensagens.
- * @returns {Array<Object>}
- */
-function normalizeChats(chats) {
-  if (!Array.isArray(chats)) {
-    throw new Error('Formato de chats não suportado: não é um array.');
-  }
-  if (chats.length === 0) {
-    return [];
-  }
-
-  // Se for um array de mensagens simples, agrupa por chatId
-  if (!chats[0].messages) {
-    const grouped = {};
-    chats.forEach((msg) => {
-      if (!grouped[msg.chatId]) {
-        grouped[msg.chatId] = { chatId: msg.chatId, messages: [] };
-      }
-      grouped[msg.chatId].messages.push(msg);
-    });
-    return Object.values(grouped);
-  }
-  
-  return chats;
+function getSentimentLabel(score) {
+  if (score > 2) return '😄 Positivo';
+  if (score < -2) return '😠 Negativo';
+  return '😐 Neutro';
 }
 
 /**
@@ -67,11 +44,9 @@ function analyzeChatMetrics(chat) {
   let receivedMessages = 0;
   let sentimentScore = 0;
   let lastMessage = null;
-  let responseTimes = [];
-  let lastContactMessage = null;
-  let lastMyMessage = null;
   const detectedThemes = new Set();
-  const nouns = {};
+  // Garante que o nome do contato seja usado, se não, usa o ID do chat formatado.
+  const contactName = chat.name && chat.name !== chat.chatId.replace('@c.us', '') ? chat.name : chat.chatId.replace('@c.us', '');
 
   chat.messages.forEach((message) => {
     const text = message.body || '';
@@ -80,19 +55,11 @@ function analyzeChatMetrics(chat) {
     // Análise de Sentimento
     sentimentScore += sentiment.analyze(text).score;
 
-    // Contagem de Mensagens e Cálculo de Tempo de Resposta
+    // Contagem de Mensagens
     if (message.fromMe) {
       sentMessages++;
-      if (lastContactMessage) {
-        responseTimes.push(message.timestamp - lastContactMessage.timestamp);
-      }
-      lastMyMessage = message;
     } else {
       receivedMessages++;
-      if (lastMyMessage) {
-        // Aqui poderíamos calcular o tempo de resposta do contato, se necessário
-      }
-      lastContactMessage = message;
     }
     lastMessage = message;
 
@@ -101,153 +68,94 @@ function analyzeChatMetrics(chat) {
       for (const keyword of theme.palavras) {
         if (normalizedText.includes(keyword)) {
           detectedThemes.add(theme.tema);
+          break; 
         }
       }
     }
-
-    // Extração de Tópicos (Substantivos)
-    nlp(normalizedText).nouns().out('array').forEach(n => {
-      nouns[n] = (nouns[n] || 0) + 1;
-    });
   });
 
-  const avgResponseTime = responseTimes.length > 0
-    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
-    : null;
-
   return {
-    chatId: chat.chatId,
-    contactName: (lastMessage && lastMessage.senderName) || chat.chatId,
-    totalMessages: chat.messages.length,
+    contactName,
     sentMessages,
     receivedMessages,
-    sentimentScore,
-    isPending: lastMessage && !lastMessage.fromMe,
-    pendingInfo: lastMessage && !lastMessage.fromMe ? {
-      body: lastMessage.body,
-      timestamp: lastMessage.isoTimestamp
-    } : null,
-    avgResponseTime,
-    themes: Array.from(detectedThemes),
-    nouns
+    totalMessages: chat.messages.length,
+    sentimentLabel: getSentimentLabel(sentimentScore),
+    lastMessage: lastMessage ? `_"${lastMessage.body.substring(0, 50)}..."_` : '_Nenhuma mensagem_',
+    detectedThemes: detectedThemes.size > 0 ? [...detectedThemes].join(', ') : 'Nenhum tópico principal detectado',
   };
 }
 
+
 /**
- * Formata o relatório de resumo final a partir das métricas agregadas.
- * @param {Object} metrics - Métricas agregadas de todos os chats.
- * @returns {string} O relatório de resumo formatado.
+ * Cria um resumo diário com base nos chats fornecidos.
+ * @param {Array<Object>} allMessages - Lista de todas as mensagens do dia.
+ * @returns {string} O resumo formatado como uma string.
  */
-function formatSummaryReport(metrics) {
-  let summary = `Resumo das Conversas:\n`;
-  summary += `Total de Mensagens: ${metrics.totalMessages}\n`;
-  summary += `Sentimento Médio: ${metrics.averageSentiment.toFixed(2)}\n`;
-
-  summary += `\nTop 3 contatos mais engajados:\n`;
-  metrics.topEngaged.forEach(e => summary += `- ${e.contactName}: ${e.totalMessages} mensagens\n`);
-
-  summary += `\nTop 3 maiores tempos médios de resposta (em segundos):\n`;
-  metrics.topResponseTimes.forEach(t => summary += `- ${t.contactName}: ${Math.round(t.avgResponseTime)}s\n`);
-  
-  summary += `\nTop 3 temas mais frequentes:\n`;
-  metrics.topThemes.forEach(([theme, count]) => summary += `- ${theme}: ${count} chats\n`);
-
-  summary += `\nPrincipais tópicos mencionados:\n`;
-  metrics.topNouns.forEach(([noun, count]) => summary += `- ${noun}: ${count} menções\n`);
-
-  if (metrics.pendingChats.length > 0) {
-    summary += `\nConversas aguardando seu retorno:\n`;
-    metrics.pendingChats.forEach(p => {
-      summary += `- ${p.contactName}: "${p.pendingInfo.body.slice(0, 50)}..."\n`;
-    });
-  } else {
-    summary += '\nNenhuma conversa pendente de resposta.\n';
+async function createDailySummary(allMessages) {
+  if (!allMessages || allMessages.length === 0) {
+    return 'Nenhuma mensagem registrada hoje para resumir.';
   }
+
+  // Agrupa mensagens por chat de forma assíncrona
+  const chats = {};
+  for (const msg of allMessages) {
+      const chatId = msg.chatId;
+      if (!chats[chatId]) {
+          let contactName = chatId.replace('@c.us', '');
+          try {
+              // A função getChat pode não estar disponível em todos os objetos de mensagem
+              if (typeof msg.getChat === 'function') {
+                  const chatInfo = await msg.getChat();
+                  contactName = chatInfo.name || contactName;
+              }
+          } catch (error) {
+              console.error(`Erro ao obter informações do chat para ${chatId}:`, error);
+          }
+          chats[chatId] = {
+              chatId: chatId,
+              name: contactName,
+              messages: []
+          };
+      }
+      chats[chatId].messages.push(msg);
+  }
+
+
+  const chatList = Object.values(chats);
+
+  if (chatList.length === 0) {
+    return 'Nenhuma conversa encontrada para resumir hoje.';
+  }
+
+  const analyzedChats = chatList.map(analyzeChatMetrics);
+
+  // Monta o resumo formatado para WhatsApp
+  let summary = `*Resumo Diário de Atividades - ${new Date().toLocaleDateString('pt-BR')}*\n\n`;
+  summary += `Você interagiu em *${analyzedChats.length}* conversa(s) hoje.\n\n`;
+  summary += `-----------------------------------\n\n`;
+
+  analyzedChats.forEach(chat => {
+    summary += `👤 *Contato:* ${chat.contactName}\n`;
+    summary += `📤 Enviadas: ${chat.sentMessages}\n`;
+    summary += `📥 Recebidas: ${chat.receivedMessages}\n`;
+    summary += `🙂 Sentimento: ${chat.sentimentLabel}\n`;
+    summary += `📌 Tópicos: ${chat.detectedThemes}\n`;
+    summary += `💬 Última Mensagem: ${chat.lastMessage}\n\n`;
+    summary += `-----------------------------------\n\n`;
+  });
+
+  const totalSent = analyzedChats.reduce((sum, chat) => sum + chat.sentMessages, 0);
+  const totalReceived = analyzedChats.reduce((sum, chat) => sum + chat.receivedMessages, 0);
+
+  summary += `*Resumo Geral do Dia:*\n`;
+  summary += `Total de Mensagens Enviadas: *${totalSent}*\n`;
+  summary += `Total de Mensagens Recebidas: *${totalReceived}*\n`;
+  summary += `Total de Conversas Ativas: *${analyzedChats.length}*\n\n`;
+  summary += `Este é um resumo automático das suas interações.`;
 
   return summary;
 }
 
-/**
- * Gera um resumo estatístico das conversas analisando sentimento, engajamento e tópicos.
- *
- * @param {Array<Object>} chats - Lista de chats ou mensagens simples para agrupar.
- * @returns {string} Texto em português contendo as principais métricas do período.
- */
-function generateSummary(chats) {
-  const normalizedChats = normalizeChats(chats);
-  if (normalizedChats.length === 0) {
-    return "Nenhuma mensagem para analisar.";
-  }
-
-  const analysisResults = normalizedChats.map(analyzeChatMetrics);
-
-  // Agregação de Métricas
-  const totalMessages = analysisResults.reduce((sum, r) => sum + r.totalMessages, 0);
-  const totalSentiment = analysisResults.reduce((sum, r) => sum + r.sentimentScore, 0);
-  
-  const allNouns = {};
-  const allThemes = {};
-  analysisResults.forEach(r => {
-    r.themes.forEach(theme => allThemes[theme] = (allThemes[theme] || 0) + 1);
-    Object.entries(r.nouns).forEach(([noun, count]) => allNouns[noun] = (allNouns[noun] || 0) + count);
-  });
-
-  const aggregatedMetrics = {
-    totalMessages,
-    averageSentiment: totalMessages > 0 ? totalSentiment / totalMessages : 0,
-    topEngaged: [...analysisResults].sort((a, b) => b.totalMessages - a.totalMessages).slice(0, 3),
-    topResponseTimes: [...analysisResults].filter(r => r.avgResponseTime).sort((a, b) => b.avgResponseTime - a.avgResponseTime).slice(0, 3),
-    topThemes: Object.entries(allThemes).sort((a, b) => b[1] - a[1]).slice(0, 3),
-    topNouns: Object.entries(allNouns).sort((a, b) => b[1] - a[1]).slice(0, 5),
-    pendingChats: analysisResults.filter(r => r.isPending)
-  };
-
-  return formatSummaryReport(aggregatedMetrics);
-}
-
-/**
- * Analisa as conversas e retorna apenas as pendências, isto é,
- * chats cuja última mensagem não foi respondida.
- *
- * @param {Array<Object>|Array} chats - Lista de chats ou mensagens soltas.
- * @returns {string} Texto com a lista de pendências encontradas.
- */
-function generatePendingSummary(chats) {
-  const normalizedChats = normalizeChats(chats);
-  if (normalizedChats.length === 0) {
-    return "Nenhuma mensagem para analisar.";
-  }
-
-  const pendencias = [];
-
-  normalizedChats.forEach((chat) => {
-    if (chat.messages.length === 0) return;
-    const ultimaMsg = chat.messages[chat.messages.length - 1];
-
-    if (ultimaMsg && !ultimaMsg.fromMe) {
-      pendencias.push({
-        contato: ultimaMsg.senderName || chat.chatId || 'desconhecido',
-        mensagem: ultimaMsg.body,
-        quando: ultimaMsg.isoTimestamp
-          ? new Date(ultimaMsg.isoTimestamp).toLocaleString('pt-BR')
-          : 'data desconhecida'
-      });
-    }
-  });
-
-  if (pendencias.length > 0) {
-    let summary = `Resumo de Pendências:\n\nConversas aguardando seu retorno:\n`;
-    pendencias.forEach((p) => {
-      summary += `- ${p.contato}: "${p.mensagem.slice(0, 50)}..." (em ${p.quando})\n`;
-    });
-    return summary;
-  } else {
-    return 'Nenhuma conversa pendente de resposta.\n';
-  }
-}
-
-// Exporta as funções de geração de resumo
 module.exports = {
-  generateSummary,
-  generatePendingSummary
+  createDailySummary,
 };

@@ -5,7 +5,7 @@ const logger = require('../../logger');
 module.exports = {
     name: 'test-email',
     description: 'Envia um e-mail de teste para validar a configuração.',
-    async execute(message, args) {
+    async execute(message) {
         try {
             logger.info('Executando comando !test-email...');
             message.reply('Enviando e-mail de teste...');
