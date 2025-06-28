@@ -1,63 +1,60 @@
 # Whats-17-06
 
-Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos diários. Todas as mensagens são salvas em um banco SQLite (`data/messages.db`), o que facilita consultas e garante que os dados fiquem locais.
+Bot de WhatsApp em Node.js para registrar conversas, analisar mensagens e enviar resumos diários por e-mail.
 
 ## Funcionalidades principais
 
-- **Integração com o WhatsApp** através da biblioteca `whatsapp-web.js` com autenticação `LocalAuth`.
-- **Comandos básicos**: responde `!ping` com `pong` e envia o resumo de pendências quando recebe `!pendencias` do administrador definido em `WHATSAPP_ADMIN_NUMBER`.
-- **Gerenciador de comandos**: cada comando é um módulo em `src/commands`, carregado dinamicamente na inicialização.
-- **Armazenamento de mensagens**: registros em banco SQLite (`data/messages.db`), via `src/database.js`.
-- **Sessão persistente**: autenticação usando `LocalAuth` com dados salvos em `session_data/`.
-- **Resumos automáticos**: tarefa `cron` diária (16:00 BRT por padrão) que salva as conversas e dispara um e-mail.
-- **Envio de e-mail**: `nodemailer` configurado para Gmail envia resumos completos ou apenas pendências.
-- **Análise de mensagens**: `src/summarizer.js` usa as libs `sentiment` e `compromise` para detectar sentimento, tópicos e pendências.
-- **Servidor Express** para health check em `/health` (porta `8080` por padrão).
-- **Logs estruturados**: `winston` com rotação diária em `logs/`.
-- **Qualidade garantida**: ESLint, Prettier e testes unitários com Jest.
+- **Integração com o WhatsApp** usando `whatsapp-web.js` e autenticação `LocalAuth` para manter a sessão.
+- **Comandos**: `!ping` responde `pong` e `!pendencias` (restrito ao administrador) envia um resumo apenas com as pendências.
+- **Armazenamento de mensagens**: cada dia é salvo em `chats_salvos/chats-YYYY-MM-DD.json`.
+- **Sessão persistente**: dados do WhatsApp ficam em `session_data/`.
+- **Resumos automáticos**: tarefa agendada com `node-cron` para as **23:50** que salva as conversas do dia e dispara o e-mail.
+- **Envio de e-mails**: `nodemailer` configurado para Gmail (necessária senha de aplicativo).
+- **Análise de mensagens**: `src/summarizer.js` calcula sentimento, temas e pendências.
+- **Servidor Express** expõe `/health` para verificação de saúde do contêiner.
+- **Logs estruturados** com `winston`.
+- **Qualidade de código**: ESLint, Prettier e testes com Jest.
 
 ## Estrutura do repositório
 
 ```
-src/index.js         - Inicializa o cliente WhatsApp e agenda o resumo diário
-src/summarizer.js    - Analisa mensagens e gera resumos gerais ou de pendências
-src/emailer.js       - Envio de e-mails com os resumos gerados
-src/logger.js        - Configuração de logs com Winston e rotação diária
-src/database.js      - Persistência das mensagens em SQLite
-src/scripts/test-summary.js  - Script para testar o envio de e-mail
-src/__tests__/       - Testes automatizados com Jest
-src/commands/        - Comandos organizados de forma modular
-session_data/        - Pasta onde o WhatsApp salva a sessão
-data/                - Arquivos do banco de dados SQLite
-COMMANDS.md          - Referência rápida dos comandos do bot
-Dockerfile           - Imagem Node para execução em contêiner
-DEPLOYMENT_FIX.md    - Instruções para corrigir erro de branch em plataformas de deploy
-INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
-.eslintrc.jsonc      - Regras básicas do ESLint
+src/index.js         - Inicializa o cliente e agenda o resumo diário
+src/summarizer.js    - Gera textos dos resumos e das pendências
+src/emailer.js       - Lógica de envio de e-mails
+src/logger.js        - Configuração do Winston
+src/database.js      - Utilitários de persistência
+src/scripts/test-summary.js  - Teste manual do envio de e-mails
+src/__tests__/       - Testes automatizados
+src/commands/        - Comandos do bot
+session_data/        - Dados de autenticação do WhatsApp
+chats_salvos/        - Conversas salvas por dia
+COMMANDS.md          - Lista rápida dos comandos
+Dockerfile           - Imagem para execução em contêiner
+DEPLOYMENT_FIX.md    - Dicas para corrigir erro de branch em plataformas de deploy
+INSTRUCOES_DEPLOY.md - Passo a passo de deploy na Coolify
+.eslintrc.jsonc      - Regras do ESLint
 ```
 
 ## Configuração
 
-Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
+Crie um arquivo `.env` baseado em `.env.example` e defina:
 
 ```
-WHATSAPP_ADMIN_NUMBER=55999931227@c.us
+WHATSAPP_ADMIN_NUMBER=559999999999@c.us
 DEFAULT_SUMMARY_DAYS=7
-DAILY_SUMMARY_CRON=0 16 * * *
+DAILY_SUMMARY_CRON=50 23 * * *
 WHATSAPP_NOTIFY=false
-EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_PASSWORD=uiydrinsudkzsuqi
-EMAIL_TO=schieste87@gmail.com
-# Porta usada pelo servidor Express opcional
+EMAIL_USER=seu_email@gmail.com
+EMAIL_PASSWORD=sua_senha_de_app
+EMAIL_TO=destinatario@gmail.com
 PORT=8080
 ```
-O valor de `WHATSAPP_ADMIN_NUMBER` define qual contato está autorizado a usar o comando `!pendencias`.
-O `DEFAULT_SUMMARY_DAYS` controla quantos dias entram no resumo diário automático.
-`PORT` permite escolher a porta do endpoint `/health` usado para monitorar o bot.
-Caso nao possua o Chrome instalado, mantenha o arquivo `.npmrc` com `puppeteer_skip_chromium_download=false` para que o Puppeteer baixe o Chromium automaticamente.
-`DAILY_SUMMARY_CRON` permite ajustar o horário da tarefa de resumo sem alterar o código.
-Com `WHATSAPP_NOTIFY` ajustado para `true`, o bot enviará o resumo para o WhatsApp do administrador além do e-mail.
-Para que o envio de e-mails funcione é necessário criar uma senha de aplicativo no Gmail e habilitar o acesso às APIs necessárias.
+
+`WHATSAPP_ADMIN_NUMBER` é o contato autorizado a usar `!pendencias`.
+`DEFAULT_SUMMARY_DAYS` define quantos dias entram no resumo padrão.
+`DAILY_SUMMARY_CRON` permite ajustar o horário da tarefa diária.
+Se `WHATSAPP_NOTIFY` for `true`, o resumo também é enviado via WhatsApp.
+A senha do Gmail deve ser uma **senha de aplicativo**.
 
 ## Executando localmente
 
@@ -69,19 +66,21 @@ Para que o envio de e-mails funcione é necessário criar uma senha de aplicativ
    ```bash
    node src/index.js
    ```
-   Na primeira execução será exibido um QR Code no terminal para autenticação.
+   Na primeira execução será exibido um QR Code para autenticação.
 
-Durante o desenvolvimento você pode utilizar `npm run dev` (com `nodemon`) para recarregar o bot automaticamente. Os testes unitários podem ser executados com `npm test`.
+Durante o desenvolvimento é possível usar `npm run dev` para recarregar automaticamente.
+Os testes podem ser executados com `npm test`.
 
 ## Utilizando Docker
 
-O repositório inclui um `Dockerfile` pronto para execução. Para construir e rodar localmente:
+O `Dockerfile` permite construir e rodar a aplicação em contêiner:
 
 ```bash
 npm run docker:build-local
 npm run docker:run-local
 ```
-Se preferir executar o comando manualmente, utilize a sintaxe abaixo (útil em sistemas Linux/macOS):
+
+Se preferir rodar manualmente:
 
 ```bash
 docker run -it --rm \
@@ -92,25 +91,14 @@ docker run -it --rm \
 
 ## Gerando resumos manualmente
 
-Para testar o envio de e-mails sem precisar aguardar o agendamento, execute:
+Para testar o envio de e-mail sem aguardar o agendamento:
 
 ```bash
 node src/scripts/test-summary.js
 ```
 
-## Considerações adicionais
+## Deploy
 
-- Os arquivos `DEPLOYMENT_FIX.md` e `INSTRUCOES_DEPLOY.md` contêm instruções específicas de deploy para plataformas como Coolify.
-- Todo o código principal agora está organizado dentro do diretório `src/`.
-- Caso deseje personalizar as regras de estilo, utilize os arquivos `.eslintrc.jsonc` e `.prettierrc`.
-- O horário do resumo pode ser alterado ajustando a variável `DAILY_SUMMARY_CRON` no `.env`.
+O deploy é feito no **Coolify**. Basta configurar o repositório, escolher **Dockerfile** como método de build e manter a branch `main`. A cada `git push` um novo deploy é disparado.
 
-# Versão 1.1
-
-## Deploy no Coolify
-
-1. No painel da Coolify, acesse sua aplicação.
-2. Em "Configuration" escolha **Dockerfile** como método de build e mantenha a branch `main`.
-3. Salve e clique em **Deploy**.
-
-Se ocorrer algum erro mencionando `nixpacks` ou `nix-env`, verifique se o passo acima está configurado corretamente.
+Se algum erro de branch ocorrer, consulte `DEPLOYMENT_FIX.md` ou `INSTRUCOES_DEPLOY.md`.
