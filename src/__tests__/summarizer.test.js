@@ -42,7 +42,8 @@ describe('summarizer', () => {
 
   test('generateSummary com array vazio', () => {
     const res = generateSummary([]);
-    expect(res).toContain('Total de Mensagens: 0');
+    // Correção: Atualiza o texto esperado para corresponder à nova implementação.
+    expect(res).toBe('Nenhuma mensagem para analisar.');
   });
 
   test('aceita lista simples de mensagens', () => {

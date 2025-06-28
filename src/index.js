@@ -1,57 +1,13 @@
 require('winston-daily-rotate-file');
 require('dotenv').config();
 
-const db = require('./database');
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
 const express = require('express');
 const cron = require('node-cron');
-const emailer = require('./emailer');
 const logger = require('./logger');
-const { Collection } = require('@discordjs/collection');
-const fs = require('fs');
-const path = require('path');
-
-process.on('uncaughtException', (err, origin) => {
-  const fsSync = require('fs');
-  const pathSync = require('path');
-  logger.error('====== UNCAUGHT EXCEPTION ======');
-  logger.error(`Timestamp: ${new Date().toISOString()}`);
-  logger.error(`Origem: ${origin}`);
-  logger.error(err);
-  logger.error('==============================');
-  try {
-    const logsDir = pathSync.join(__dirname, 'logs');
-    if (!fsSync.existsSync(logsDir))
-      fsSync.mkdirSync(logsDir, { recursive: true });
-    fsSync.appendFileSync(
-      pathSync.join(logsDir, 'exceptions.log'),
-      `[${new Date().toISOString()}] Origin: ${origin}\n${err.stack || err}\n\n`
-    );
-  } catch (logErr) {
-    logger.error('Falha ao escrever no log de exceções síncrono:', logErr);
-  }
-});
-
-process.on('unhandledRejection', (reason) => {
-  const fsSync = require('fs');
-  const pathSync = require('path');
-  logger.error('====== UNHANDLED REJECTION ======');
-  logger.error(`Timestamp: ${new Date().toISOString()}`);
-  logger.error('Motivo do Rejection:', reason);
-  logger.error('===============================');
-  try {
-    const logsDir = pathSync.join(__dirname, 'logs');
-    if (!fsSync.existsSync(logsDir))
-      fsSync.mkdirSync(logsDir, { recursive: true });
-    fsSync.appendFileSync(
-      pathSync.join(logsDir, 'rejections.log'),
-      `[${new Date().toISOString()}] Reason: ${String(reason)}\n\n`
-    );
-  } catch (logErr) {
-    logger.error('Falha ao escrever no log de rejeições síncrono:', logErr);
-  }
-});
+const db = require('./database');
+const { sendSummaryForDate } = require('./emailer');
 
 logger.info('Configurando o cliente do WhatsApp...');
 const client = new Client({
@@ -129,67 +85,30 @@ client.on('ready', () => {
   );
 
   logger.info(`[CRON] Tarefa de resumo diário agendada para "${summaryCron}".`);
+
+  // Agendamento do resumo diário
+  // Correção: Adicionado timezone para garantir a execução no horário de Brasília.
+  // Refatoração: Simplificado para usar a função sendSummaryForDate, que já contém a lógica necessária.
+  cron.schedule('0 23 * * *', async () => {
+    logger.info('Executando tarefa agendada: envio do resumo diário.');
+    try {
+      const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+      await sendSummaryForDate(today);
+      // A função sendSummaryForDate já registra se o e-mail foi enviado ou não.
+      logger.info('Tarefa agendada de resumo diário concluída.');
+    } catch (error) {
+      // O erro já é logado dentro de sendEmail, mas podemos logar aqui também para o contexto do cron.
+      logger.error('Erro ao executar a tarefa agendada de resumo diário:', error.message);
+    }
+  }, {
+    scheduled: true,
+    timezone: "America/Sao_Paulo"
+  });
 });
 
-client.on('message', async (message) => {
-  try {
-    let chat;
-    try {
-      chat = await message.getChat();
-    } catch (chatErr) {
-      logger.warn(
-        `Não foi possível obter o chat da mensagem ${
-          message.id?.id || message.id
-        }: ${chatErr.message}`
-      );
-      return;
-    }
-    const contact = await message.getContact();
-    const contactName =
-      contact.pushname || contact.name || (chat.isGroup ? message.author : message.from);
-
-    if (chat.isGroup) {
-      logger.info(
-        `[GRUPO] Em "${chat.name}": De: ${contactName} | Mensagem: "${message.body}"`
-      );
-    } else {
-      logger.info(`[PRIVADO] De: ${contactName} | Mensagem: "${message.body}"`);
-    }
-
-    const messageData = {
-      chatId: chat.id._serialized,
-      id: message.id.id,
-      timestamp: message.timestamp,
-      isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
-      senderName: contactName,
-      type: message.type,
-      body: message.body,
-      fromMe: message.fromMe
-    };
-    await db.addMessage(messageData);
-
-    const prefix = '!';
-    if (!message.body.startsWith(prefix) || message.fromMe) return;
-
-    const args = message.body.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
-
-    const command = client.commands.get(commandName);
-    if (!command) return;
-
-    logger.info(`[EXECUÇÃO] Executando comando "${command.name}"...`);
-    await command.execute(message, args, client);
-  } catch (err) {
-    logger.error(
-      `Erro ao processar mensagem ${message.id?.id || message.id} de ${message.from}:`,
-      err
-    );
-    try {
-      await message.reply('Ocorreu um erro ao processar sua mensagem!');
-    } catch (e) {
-      logger.error('Falha ao enviar mensagem de erro:', e);
-    }
-  }
+client.on('message', async (msg) => {
+  await db.addMessageFromWhatsapp(msg);
+  // A lógica de comando foi movida para o handler
 });
 
 // Registra mensagens enviadas pelo bot

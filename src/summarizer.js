@@ -6,262 +6,203 @@ const sentiment = new Sentiment();
 const nlp = require('compromise');
 const removeAccents = require('remove-accents');
 
+const KEYWORD_THEMES = [
+  {
+    tema: 'Financeiro',
+    palavras: ['preço', 'cobrança', 'valor', 'pagar', 'orçamento', 'boleto', 'pix']
+  },
+  {
+    tema: 'Suporte',
+    palavras: ['erro', 'problema', 'ajuda', 'suporte', 'bug', 'falha']
+  },
+  {
+    tema: 'Agendamento',
+    palavras: ['horário', 'marcar', 'agenda', 'amanhã', 'reunião', 'encontro']
+  },
+  {
+    tema: 'Pessoal',
+    palavras: ['família', 'amor', 'parabéns', 'saudade', 'abraço', 'feliz']
+  },
+  {
+    tema: 'Mídia',
+    palavras: ['foto', 'imagem', 'pdf', 'documento', 'áudio', 'vídeo']
+  }
+];
+
 /**
- * Gera um resumo estatístico das conversas analisando sentimento, engajamento e tópicos.
- *
- * @param {Array<Object>|Array} chats - Lista de chats ou mensagens simples para agrupar.
- * @returns {string} Texto em português contendo as principais métricas do período.
+ * Normaliza o input de chats para um formato padrão.
+ * @param {Array<Object>} chats - Lista de chats ou mensagens.
+ * @returns {Array<Object>}
  */
-function generateSummary(chats) {
-  // Se for um array de mensagens simples, converte para formato agrupado por chatId
-  let chatsArray;
-  if (Array.isArray(chats) && chats.length > 0 && !chats[0].messages) {
-    // Agrupa por chatId
+function normalizeChats(chats) {
+  if (!Array.isArray(chats)) {
+    throw new Error('Formato de chats não suportado: não é um array.');
+  }
+  if (chats.length === 0) {
+    return [];
+  }
+
+  // Se for um array de mensagens simples, agrupa por chatId
+  if (!chats[0].messages) {
     const grouped = {};
     chats.forEach((msg) => {
-      if (!grouped[msg.chatId]) grouped[msg.chatId] = [];
-      grouped[msg.chatId].push(msg);
+      if (!grouped[msg.chatId]) {
+        grouped[msg.chatId] = { chatId: msg.chatId, messages: [] };
+      }
+      grouped[msg.chatId].messages.push(msg);
     });
-    chatsArray = Object.values(grouped).map((messages) => ({
-      chatId: messages[0].chatId,
-      messages
-    }));
-  } else if (Array.isArray(chats)) {
-    chatsArray = chats;
-  } else {
-    throw new Error('Formato de chats não suportado');
+    return Object.values(grouped);
   }
-  let totalMessages = 0;
-  let totalSentimentScore = 0;
-  let positiveMessages = 0;
-  let negativeMessages = 0;
-  let neutralMessages = 0;
-  let pendencias = [];
-  let resumoPorChat = [];
-  let temposResposta = [];
-  let engajamento = [];
-  let temasPorChat = {};
-  let globalTopics = {};
-  const temasChave = [
-    {
-      tema: 'Financeiro',
-      palavras: [
-        'preço',
-        'cobrança',
-        'valor',
-        'pagar',
-        'orçamento',
-        'boleto',
-        'pix'
-      ]
-    },
-    {
-      tema: 'Suporte',
-      palavras: ['erro', 'problema', 'ajuda', 'suporte', 'bug', 'falha']
-    },
-    {
-      tema: 'Agendamento',
-      palavras: ['horário', 'marcar', 'agenda', 'amanhã', 'reunião', 'encontro']
-    },
-    {
-      tema: 'Pessoal',
-      palavras: ['família', 'amor', 'parabéns', 'saudade', 'abraço', 'feliz']
-    },
-    {
-      tema: 'Mídia',
-      palavras: ['foto', 'imagem', 'pdf', 'documento', 'áudio', 'vídeo']
+  
+  return chats;
+}
+
+/**
+ * Analisa um único chat e extrai métricas.
+ * @param {Object} chat - O objeto do chat com mensagens.
+ * @returns {Object} Métricas analisadas para o chat.
+ */
+function analyzeChatMetrics(chat) {
+  let sentMessages = 0;
+  let receivedMessages = 0;
+  let sentimentScore = 0;
+  let lastMessage = null;
+  let responseTimes = [];
+  let lastContactMessage = null;
+  let lastMyMessage = null;
+  const detectedThemes = new Set();
+  const nouns = {};
+
+  chat.messages.forEach((message) => {
+    const text = message.body || '';
+    const normalizedText = removeAccents(text.toLowerCase());
+
+    // Análise de Sentimento
+    sentimentScore += sentiment.analyze(text).score;
+
+    // Contagem de Mensagens e Cálculo de Tempo de Resposta
+    if (message.fromMe) {
+      sentMessages++;
+      if (lastContactMessage) {
+        responseTimes.push(message.timestamp - lastContactMessage.timestamp);
+      }
+      lastMyMessage = message;
+    } else {
+      receivedMessages++;
+      if (lastMyMessage) {
+        // Aqui poderíamos calcular o tempo de resposta do contato, se necessário
+      }
+      lastContactMessage = message;
     }
-  ];
-  chatsArray.forEach((chat) => {
-    totalMessages += chat.messages.length;
-    let enviadas = 0;
-    let recebidas = 0;
-    let ultimaMsg = null;
-    let tempos = [];
-    let lastFromContato = null;
-    let lastFromMe = null;
-    let temasDetectados = new Set();
-    chat.messages.forEach((messageObj) => {
-      const text =
-        typeof messageObj === 'string' ? messageObj : messageObj.body;
-      const fromMe = messageObj.fromMe;
-      const sentimentResult = sentiment.analyze(text);
-      totalSentimentScore += sentimentResult.score;
-      if (sentimentResult.score > 0) positiveMessages++;
-      else if (sentimentResult.score < 0) negativeMessages++;
-      else neutralMessages++;
-      if (fromMe) {
-        enviadas++;
-        lastFromMe = messageObj;
-        // Se a anterior era do contato, calcula tempo de resposta
-        if (lastFromContato) {
-          tempos.push(messageObj.timestamp - lastFromContato.timestamp);
-        }
-      } else {
-        recebidas++;
-        lastFromContato = messageObj;
-        // Se a anterior era sua, calcula tempo de resposta do contato
-        if (lastFromMe) {
-          tempos.push(messageObj.timestamp - lastFromMe.timestamp);
+    lastMessage = message;
+
+    // Detecção de Temas por Palavra-chave
+    for (const theme of KEYWORD_THEMES) {
+      for (const keyword of theme.palavras) {
+        if (normalizedText.includes(keyword)) {
+          detectedThemes.add(theme.tema);
         }
       }
-      ultimaMsg = messageObj;
-      // Detecta temas
-      for (const tema of temasChave) {
-        for (const palavra of tema.palavras) {
-          if (text && text.toLowerCase().includes(palavra))
-            temasDetectados.add(tema.tema);
-        }
-      }
-      // Extrai substantivos para detecção de tópicos gerais
-      const nouns = nlp(removeAccents(text).toLowerCase()).nouns().out('array');
-      nouns.forEach((n) => {
-        globalTopics[n] = (globalTopics[n] || 0) + 1;
-      });
-    });
-    // Detecta pendência: se a última mensagem do chat não foi enviada por você, está aguardando seu retorno
-    if (ultimaMsg && !ultimaMsg.fromMe) {
-      pendencias.push({
-        chatId:
-          chat.chatId ||
-          (chat.messages[0] && chat.messages[0].chatId) ||
-          'desconhecido',
-        contato: ultimaMsg.senderName || chat.chatId || 'desconhecido',
-        mensagem: ultimaMsg.body,
-        quando: ultimaMsg.isoTimestamp || ''
-      });
     }
-    // Engajamento: total de mensagens
-    engajamento.push({
-      chatId:
-        chat.chatId ||
-        (chat.messages[0] && chat.messages[0].chatId) ||
-        'desconhecido',
-      contato:
-        (ultimaMsg && ultimaMsg.senderName) || chat.chatId || 'desconhecido',
-      total: chat.messages.length
-    });
-    // Temas
-    temasPorChat[
-      chat.chatId ||
-        (chat.messages[0] && chat.messages[0].chatId) ||
-        'desconhecido'
-    ] = Array.from(temasDetectados);
-    // Tempo médio de resposta (apenas respostas suas)
-    const temposValidos = tempos.filter((t) => t > 0 && t < 60 * 60 * 24 * 7); // ignora tempos absurdos
-    const tempoMedio =
-      temposValidos.length > 0
-        ? temposValidos.reduce((a, b) => a + b, 0) / temposValidos.length
-        : null;
-    temposResposta.push({
-      chatId:
-        chat.chatId ||
-        (chat.messages[0] && chat.messages[0].chatId) ||
-        'desconhecido',
-      tempoMedio
-    });
-    resumoPorChat.push(
-      `Chat: ${chat.chatId || (chat.messages[0] && chat.messages[0].chatId) || 'desconhecido'}\n  Enviadas por você: ${enviadas}\n  Recebidas: ${recebidas}\n  Última mensagem: ${(ultimaMsg && ultimaMsg.body) || ''}\n  Temas: ${Array.from(temasDetectados).join(', ') || 'Nenhum'}`
-    );
-  });
-  const averageSentiment =
-    totalMessages > 0 ? totalSentimentScore / totalMessages : 0;
-  // Top 3 engajamento
-  const topEngajamento = engajamento
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 3);
-  // Top 3 chats com maior tempo médio de resposta seu
-  const topTempos = temposResposta
-    .filter((t) => t.tempoMedio)
-    .sort((a, b) => b.tempoMedio - a.tempoMedio)
-    .slice(0, 3);
-  // Adiciona estatísticas extras
-  // 1. Tempo médio geral de resposta seu
-  const temposValidosGlobais = temposResposta
-    .map((t) => t.tempoMedio)
-    .filter((t) => t);
-  const tempoMedioGeral =
-    temposValidosGlobais.length > 0
-      ? temposValidosGlobais.reduce((a, b) => a + b, 0) /
-        temposValidosGlobais.length
-      : null;
-  // 2. Contato com mais pendências
-  let pendenciasPorContato = {};
-  pendencias.forEach((p) => {
-    pendenciasPorContato[p.contato] =
-      (pendenciasPorContato[p.contato] || 0) + 1;
-  });
-  const topPendencias = Object.entries(pendenciasPorContato)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-  // 3. Estatísticas de temas
-  let temasCount = {};
-  Object.values(temasPorChat)
-    .flat()
-    .forEach((t) => {
-      temasCount[t] = (temasCount[t] || 0) + 1;
-    });
-  const topTemas = Object.entries(temasCount)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-  // 4. Principais tópicos por frequência de substantivos
-  const topNouns = Object.entries(globalTopics)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 3);
-  // 5. Mensagem mais longa recebida e enviada
-  let msgMaisLongaRecebida = null,
-    msgMaisLongaEnviada = null;
-  chatsArray.forEach((chat) => {
-    chat.messages.forEach((m) => {
-      if (
-        !m.fromMe &&
-        (!msgMaisLongaRecebida ||
-          (m.body && m.body.length > msgMaisLongaRecebida.body.length))
-      )
-        msgMaisLongaRecebida = m;
-      if (
-        m.fromMe &&
-        (!msgMaisLongaEnviada ||
-          (m.body && m.body.length > msgMaisLongaEnviada.body.length))
-      )
-        msgMaisLongaEnviada = m;
+
+    // Extração de Tópicos (Substantivos)
+    nlp(normalizedText).nouns().out('array').forEach(n => {
+      nouns[n] = (nouns[n] || 0) + 1;
     });
   });
+
+  const avgResponseTime = responseTimes.length > 0
+    ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+    : null;
+
+  return {
+    chatId: chat.chatId,
+    contactName: (lastMessage && lastMessage.senderName) || chat.chatId,
+    totalMessages: chat.messages.length,
+    sentMessages,
+    receivedMessages,
+    sentimentScore,
+    isPending: lastMessage && !lastMessage.fromMe,
+    pendingInfo: lastMessage && !lastMessage.fromMe ? {
+      body: lastMessage.body,
+      timestamp: lastMessage.isoTimestamp
+    } : null,
+    avgResponseTime,
+    themes: Array.from(detectedThemes),
+    nouns
+  };
+}
+
+/**
+ * Formata o relatório de resumo final a partir das métricas agregadas.
+ * @param {Object} metrics - Métricas agregadas de todos os chats.
+ * @returns {string} O relatório de resumo formatado.
+ */
+function formatSummaryReport(metrics) {
   let summary = `Resumo das Conversas:\n`;
-  summary += `Total de Mensagens: ${totalMessages}\n`;
-  summary += `Mensagens Positivas: ${positiveMessages}\n`;
-  summary += `Mensagens Negativas: ${negativeMessages}\n`;
-  summary += `Mensagens Neutras: ${neutralMessages}\n`;
-  summary += `Sentimento Médio: ${averageSentiment.toFixed(2)}\n`;
-  summary += `\nResumo por chat:\n` + resumoPorChat.join('\n') + '\n';
+  summary += `Total de Mensagens: ${metrics.totalMessages}\n`;
+  summary += `Sentimento Médio: ${metrics.averageSentiment.toFixed(2)}\n`;
+
   summary += `\nTop 3 contatos mais engajados:\n`;
-  topEngajamento.forEach(
-    (e) => (summary += `- ${e.contato} (${e.chatId}): ${e.total} mensagens\n`)
-  );
+  metrics.topEngaged.forEach(e => summary += `- ${e.contactName}: ${e.totalMessages} mensagens\n`);
+
   summary += `\nTop 3 maiores tempos médios de resposta (em segundos):\n`;
-  topTempos.forEach(
-    (t) => (summary += `- ${t.chatId}: ${Math.round(t.tempoMedio)}s\n`)
-  );
-  summary += `\nTempo médio geral de resposta seu: ${tempoMedioGeral ? Math.round(tempoMedioGeral) + 's' : 'N/A'}\n`;
-  summary += `\nTop 3 contatos com mais pendências:\n`;
-  topPendencias.forEach(
-    ([contato, qtd]) => (summary += `- ${contato}: ${qtd} pendências\n`)
-  );
+  metrics.topResponseTimes.forEach(t => summary += `- ${t.contactName}: ${Math.round(t.avgResponseTime)}s\n`);
+  
   summary += `\nTop 3 temas mais frequentes:\n`;
-  topTemas.forEach(([tema, qtd]) => (summary += `- ${tema}: ${qtd} chats\n`));
+  metrics.topThemes.forEach(([theme, count]) => summary += `- ${theme}: ${count} chats\n`);
+
   summary += `\nPrincipais tópicos mencionados:\n`;
-  topNouns.forEach(([noun, qtd]) => (summary += `- ${noun}: ${qtd} menções\n`));
-  summary += `\nMensagem mais longa recebida: ${msgMaisLongaRecebida && msgMaisLongaRecebida.body ? msgMaisLongaRecebida.body.slice(0, 100) : 'N/A'}\n`;
-  summary += `Mensagem mais longa enviada: ${msgMaisLongaEnviada && msgMaisLongaEnviada.body ? msgMaisLongaEnviada.body.slice(0, 100) : 'N/A'}\n`;
-  if (pendencias.length > 0) {
+  metrics.topNouns.forEach(([noun, count]) => summary += `- ${noun}: ${count} menções\n`);
+
+  if (metrics.pendingChats.length > 0) {
     summary += `\nConversas aguardando seu retorno:\n`;
-    pendencias.forEach((p) => {
-      summary += `- ${p.contato} (${p.chatId}) em ${p.quando}: "${p.mensagem}"\n`;
+    metrics.pendingChats.forEach(p => {
+      summary += `- ${p.contactName}: "${p.pendingInfo.body.slice(0, 50)}..."\n`;
     });
   } else {
     summary += '\nNenhuma conversa pendente de resposta.\n';
   }
+
   return summary;
+}
+
+/**
+ * Gera um resumo estatístico das conversas analisando sentimento, engajamento e tópicos.
+ *
+ * @param {Array<Object>} chats - Lista de chats ou mensagens simples para agrupar.
+ * @returns {string} Texto em português contendo as principais métricas do período.
+ */
+function generateSummary(chats) {
+  const normalizedChats = normalizeChats(chats);
+  if (normalizedChats.length === 0) {
+    return "Nenhuma mensagem para analisar.";
+  }
+
+  const analysisResults = normalizedChats.map(analyzeChatMetrics);
+
+  // Agregação de Métricas
+  const totalMessages = analysisResults.reduce((sum, r) => sum + r.totalMessages, 0);
+  const totalSentiment = analysisResults.reduce((sum, r) => sum + r.sentimentScore, 0);
+  
+  const allNouns = {};
+  const allThemes = {};
+  analysisResults.forEach(r => {
+    r.themes.forEach(theme => allThemes[theme] = (allThemes[theme] || 0) + 1);
+    Object.entries(r.nouns).forEach(([noun, count]) => allNouns[noun] = (allNouns[noun] || 0) + count);
+  });
+
+  const aggregatedMetrics = {
+    totalMessages,
+    averageSentiment: totalMessages > 0 ? totalSentiment / totalMessages : 0,
+    topEngaged: [...analysisResults].sort((a, b) => b.totalMessages - a.totalMessages).slice(0, 3),
+    topResponseTimes: [...analysisResults].filter(r => r.avgResponseTime).sort((a, b) => b.avgResponseTime - a.avgResponseTime).slice(0, 3),
+    topThemes: Object.entries(allThemes).sort((a, b) => b[1] - a[1]).slice(0, 3),
+    topNouns: Object.entries(allNouns).sort((a, b) => b[1] - a[1]).slice(0, 5),
+    pendingChats: analysisResults.filter(r => r.isPending)
+  };
+
+  return formatSummaryReport(aggregatedMetrics);
 }
 
 /**
@@ -272,25 +213,14 @@ function generateSummary(chats) {
  * @returns {string} Texto com a lista de pendências encontradas.
  */
 function generatePendingSummary(chats) {
-  let chatsArray;
-  if (Array.isArray(chats) && chats.length > 0 && chats[0].messages) {
-    chatsArray = chats;
-  } else if (Array.isArray(chats)) {
-    const grouped = {};
-    chats.forEach((msg) => {
-      if (!grouped[msg.chatId]) {
-        grouped[msg.chatId] = { chatId: msg.chatId, messages: [] };
-      }
-      grouped[msg.chatId].messages.push(msg);
-    });
-    chatsArray = Object.values(grouped);
-  } else {
-    return 'Nenhum dado de chat para analisar pendências.';
+  const normalizedChats = normalizeChats(chats);
+  if (normalizedChats.length === 0) {
+    return "Nenhuma mensagem para analisar.";
   }
 
-  let pendencias = [];
+  const pendencias = [];
 
-  chatsArray.forEach((chat) => {
+  normalizedChats.forEach((chat) => {
     if (chat.messages.length === 0) return;
     const ultimaMsg = chat.messages[chat.messages.length - 1];
 
