@@ -108,23 +108,26 @@ client.on('message', async (msg) => {
   const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
 
   const isCommand = msg.body.startsWith(prefix);
-  // Verifica se o remetente está na lista de administradores
   const isAdmin = adminIds.includes(msg.from);
 
-  // Ignora mensagens do próprio bot, a menos que seja um comando de um admin.
-  if (msg.fromMe && !(isCommand && isAdmin)) {
-    return;
+  // Se a mensagem for um comando e vier de um admin, NUNCA ignorar.
+  if (isCommand && isAdmin) {
+    // Continua para o processamento do comando.
+  } else {
+    // Para outras mensagens, aplicar as regras de filtro:
+    // 1. Ignorar mensagens do próprio bot (que não sejam comandos de admin, já tratados acima).
+    // 2. Ignorar mensagens que não são comandos.
+    // 3. Ignorar atualizações de status.
+    if (msg.fromMe || !isCommand || msg.from === 'status@broadcast') {
+      return;
+    }
   }
 
   try {
     // Salva a mensagem recebida no banco de dados (APENAS se não for do bot)
+    // A verificação !msg.fromMe é mantida para não salvar os próprios comandos no log de conversas.
     if (!msg.fromMe) {
       await db.addMessageFromWhatsapp(msg);
-    }
-
-    // Ignora mensagens que não são comandos ou que vêm de status
-    if (!isCommand || msg.from === 'status@broadcast') {
-      return;
     }
 
     const args = msg.body.slice(prefix.length).trim().split(/ +/);
