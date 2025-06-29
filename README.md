@@ -13,7 +13,7 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 - **Resumos automáticos**: tarefa `cron` diária (16:00 BRT por padrão) que salva as conversas e dispara um e-mail.
 - **Envio de e-mail**: `nodemailer` configurado para Gmail envia resumos completos ou apenas pendências.
 - **Suporte a múltiplos administradores** via `ADMIN_WHATSAPP_IDS` (lista separada por vírgulas).
-- **Análise de mensagens**: `src/summarizer.js` usa as libs `sentiment` e `compromise` para detectar sentimento, tópicos e pendências.
+- **Análise de mensagens**: `src/summarizer.js` usa `sentiment` e heurísticas para identificar sentimento, tópicos e perguntas sem resposta.
 - **Servidor Express** para health check em `/health` (porta `8080` por padrão).
 - **Logs estruturados**: `winston` com rotação diária em `logs/`.
 - **Qualidade garantida**: ESLint, Prettier e testes unitários com Jest.
