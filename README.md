@@ -59,6 +59,7 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 - `!resumo-hoje` – gera um resumo das conversas de uma data ou intervalo (ex.: `!resumo-hoje 01/02/2024 05/02/2024`).
 - `!todos` – menciona todos os participantes de um grupo.
 - `!test-email` – dispara um e-mail de teste para validar as credenciais.
+- `!buscar` – pesquisa mensagens que contenham um termo especificado.
 ### Exemplos
 ```bash
 !ajuda
@@ -67,6 +68,7 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 !resumo-hoje 01/02/2024 05/02/2024
 !todos
 !test-email
+!buscar pedido
 ```
 
 ## Configuração

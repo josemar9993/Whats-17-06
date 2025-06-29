@@ -1,8 +1,9 @@
 const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
+const config = require('./config');
 
-const dbPath = path.resolve(__dirname, '../data/messages.db');
+const dbPath = config.dbPath;
 const dir = path.dirname(dbPath);
 if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
@@ -106,8 +107,34 @@ function getMessagesByDate(dateStr) {
   });
 }
 
+function searchMessages(term) {
+  return new Promise((resolve, reject) => {
+    const query = `
+      SELECT * FROM messages
+      WHERE body LIKE ?
+      ORDER BY timestamp DESC
+      LIMIT 20
+    `;
+    db.all(query, [`%${term}%`], (err, rows) => {
+      if (err) return reject(err);
+      const messages = rows.map((r) => ({
+        id: r.id,
+        chatId: r.chatId,
+        timestamp: r.timestamp,
+        isoTimestamp: r.isoTimestamp,
+        senderName: r.senderName,
+        type: r.type,
+        body: r.body,
+        fromMe: r.fromMe === 1,
+      }));
+      resolve(messages);
+    });
+  });
+}
+
 module.exports = {
   addMessage,
   addMessageFromWhatsapp,
   getMessagesByDate,
+  searchMessages,
 };

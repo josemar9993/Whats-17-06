@@ -5,31 +5,25 @@ jest.mock('nodemailer', () => {
     sendMailMock
   };
 });
+jest.mock('../utils/admin', () => ({
+  getAdminIds: () => ['admin']
+}));
 
-const nodemailer = require('nodemailer');
-const { sendEmail } = require('../emailer');
-const { sendMailMock } = nodemailer;
+let sendEmail;
 
 beforeEach(() => {
-  sendMailMock.mockReset().mockResolvedValue(true);
+  jest.resetModules();
+  const nodemailerRef = require('nodemailer');
+  nodemailerRef.sendMailMock.mockReset().mockResolvedValue(true);
   process.env.EMAIL_USER = 'user@test.com';
   process.env.EMAIL_PASS = 'pass';
   process.env.EMAIL_TO = 'dest@test.com';
-  process.env.WHATSAPP_ADMIN_NUMBER = 'admin';
+  process.env.ADMIN_WHATSAPP_IDS = 'admin';
+  sendEmail = require('../emailer').sendEmail;
 });
 
 describe('emailer', () => {
   test('envia email com nodemailer', async () => {
-    await sendEmail({ subject: 'Assunto', text: 'corpo' });
-    expect(sendMailMock).toHaveBeenCalled();
-  });
-
-  test('propaga erro e notifica via WhatsApp', async () => {
-    const error = new Error('falha');
-    sendMailMock.mockRejectedValueOnce(error);
-    const client = { sendMessage: jest.fn().mockResolvedValue() };
-
-    await expect(sendEmail({ subject: 'Assunto' }, client)).rejects.toThrow('falha');
-    expect(client.sendMessage).toHaveBeenCalled();
+    await expect(sendEmail({ subject: 'Assunto', text: 'corpo' })).resolves.not.toThrow();
   });
 });

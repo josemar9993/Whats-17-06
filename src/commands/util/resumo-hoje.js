@@ -15,15 +15,16 @@ module.exports = {
   name: 'resumo-hoje',
   description: 'Envia o resumo das conversas de um dia ou intervalo para o administrador.',
   async execute(msg, args) {
-    const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
+    const { getAdminIds, isAdmin } = require('../../utils/admin');
+    const adminIds = getAdminIds();
     const senderId = msg.from;
 
-    if (adminIds.length === 0 || !adminIds[0]) {
-      logger.warn('Comando !resumo-hoje: ADMIN_WHATSAPP_IDS não definido no .env.');
+    if (adminIds.length === 0) {
+      logger.warn('Comando !resumo-hoje: nenhum administrador definido.');
       return;
     }
 
-    if (!adminIds.includes(senderId)) {
+    if (!isAdmin(senderId)) {
       await msg.reply('Você não tem permissão para usar este comando.');
       return;
     }
