@@ -17,3 +17,36 @@ Exemplo:
 ```
 !pendencias
 ```
+
+## !resumo-hoje
+Gera um resumo das conversas de uma data ou intervalo. Se usado sem parâmetros, considera o dia atual.
+
+Exemplos:
+```
+!resumo-hoje
+!resumo-hoje 01/02/2024 05/02/2024
+```
+
+## !todos
+Menciona todos os participantes do grupo atual.
+
+Exemplo:
+```
+!todos
+```
+
+## !test-email
+Dispara um e-mail de teste para validar as credenciais configuradas.
+
+Exemplo:
+```
+!test-email
+```
+
+## !ajuda
+Lista todos os comandos disponíveis conforme este documento.
+
+Exemplo:
+```
+!ajuda
+```
