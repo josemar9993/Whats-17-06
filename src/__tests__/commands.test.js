@@ -12,10 +12,10 @@ const pendencias = require('../commands/util/pendencias');
 const buscar = require('../commands/util/buscar');
 
 describe('comandos', () => {
-  test('ping responde pong', async () => {
+  test('ping responde status online', async () => {
     const message = { reply: jest.fn() };
     await ping.execute(message);
-    expect(message.reply).toHaveBeenCalledWith('pong');
+    expect(message.reply).toHaveBeenCalledWith(expect.stringMatching(/^on-line/));
   });
 
   test('pendencias ignora nao admin', async () => {

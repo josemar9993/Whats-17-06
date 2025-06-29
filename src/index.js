@@ -14,6 +14,8 @@ const { createDailySummary } = require('./summarizer');
 const fs = require('fs');
 const path = require('path');
 
+const startTime = Date.now(); // Marca o início do bot para cálculo de uptime
+
 logger.info('Configurando o cliente do WhatsApp...');
 
 // Debug da configuração
@@ -26,6 +28,8 @@ const client = new Client({
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   }
 });
+
+client.startTime = startTime;
 
 // Carregar comandos
 client.commands = new Map();
