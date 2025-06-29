@@ -278,7 +278,7 @@ app.get('/health', (req, res) => {
 });
 
 // Adicionar tratamento de erro para porta em uso
-const server = app.listen(port, () => {
+app.listen(port, () => {
   logger.info(`Servidor de health check ouvindo na porta ${port}`);
 }).on('error', (err) => {
   if (err.code === 'EADDRINUSE') {
