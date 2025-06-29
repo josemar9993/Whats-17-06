@@ -18,10 +18,11 @@ describe('comandos', () => {
     expect(message.reply).toHaveBeenCalledWith(expect.stringMatching(/^on-line/));
   });
 
-  test('pendencias ignora nao admin', async () => {
+  test('pendencias executa para qualquer usuario', async () => {
+    db.getMessagesByDate.mockResolvedValue([]);
     const message = { from: '000', client: {}, reply: jest.fn(), sendMessage: jest.fn() };
     await pendencias.execute(message, [], { sendMessage: jest.fn() });
-    expect(db.getMessagesByDate).not.toHaveBeenCalled();
+    expect(db.getMessagesByDate).toHaveBeenCalled();
   });
 
   test('pendencias envia resumo para admin', async () => {

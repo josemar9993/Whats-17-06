@@ -1,17 +1,17 @@
 const db = require('../../database');
 const { generatePendingSummary } = require('../../summarizer');
 const logger = require('../../logger');
-const { isAdmin } = require('../../utils/admin');
 
 module.exports = {
   name: 'pendencias',
   description: 'Envia um resumo de pendências do dia para o administrador.',
   category: 'util',
   async execute(message, args, client) {
-    if (!isAdmin(message.from)) {
-      // Ignora silenciosamente se não for o administrador
-      return;
-    }
+    // A verificação de admin foi removida para permitir a execução pela própria conta
+    // if (!isAdmin(message.from)) {
+    //   // Ignora silenciosamente se não for o administrador
+    //   return;
+    // }
 
     logger.info('Comando !pendencias recebido. Gerando e enviando resumo...');
 

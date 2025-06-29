@@ -1,16 +1,10 @@
 const config = require('../../config');
-const { getAdminIds } = require('../../utils/admin');
 
 module.exports = {
   name: 'config',
-  description: 'Mostra as configurações atuais do bot (apenas admin).',
-  category: 'admin',
+  description: 'Mostra as configurações atuais do bot.',
+  category: 'util',
   async execute(message) {
-    const adminIds = getAdminIds();
-    if (!adminIds.includes(message.from)) {
-      await message.reply('Apenas administradores podem ver as configurações.');
-      return;
-    }
     const confStr = Object.entries(config)
       .map(([k, v]) => `- ${k}: ${JSON.stringify(v)}`)
       .join('\n');

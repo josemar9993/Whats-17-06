@@ -12,11 +12,13 @@ module.exports = {
       NODE_ENV: 'production',
       PORT: 8080
     },
-    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    // Desativar completamente o timestamp do PM2 para evitar duplicidade
+    time: false,
+    log_date_format: '',
+    merge_logs: true,
     error_file: './logs/pm2-error.log',
     out_file: './logs/pm2-out.log',
     log_file: './logs/pm2-combined.log',
-    time: true,
     max_memory_restart: '1G',
     node_args: '--max-old-space-size=1024',
     restart_delay: 1000,

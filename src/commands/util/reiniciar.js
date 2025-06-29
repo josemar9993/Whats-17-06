@@ -1,15 +1,8 @@
-const { getAdminIds } = require('../../utils/admin');
-
 module.exports = {
   name: 'reiniciar',
-  description: 'Reinicia o bot (apenas admin).',
-  category: 'admin',
+  description: 'Reinicia o bot.',
+  category: 'util',
   async execute(message) {
-    const adminIds = getAdminIds();
-    if (!adminIds.includes(message.from)) {
-      await message.reply('Apenas administradores podem reiniciar o bot.');
-      return;
-    }
     await message.reply('♻️ Reiniciando o bot...');
     process.exit(0);
   }

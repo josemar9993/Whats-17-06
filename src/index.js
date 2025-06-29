@@ -194,69 +194,102 @@ client.on('message', async (msg) => {
 
 // Registra mensagens enviadas pelo bot
 client.on('message_create', async (message) => {
+  const isCommand = message.body && message.body.startsWith(config.commandPrefix || '!');
+  
+  // Se for uma mensagem própria (fromMe=true)
   if (message.fromMe) {
-    logger.info(`[DEBUG] message_create disparado: fromMe=${message.fromMe}, to=${message.to}, body=${message.body}`);
-
-    const chat = await message.getChat();
-    let recipientName = chat.name;
-    if (!chat.isGroup) {
-      try {
-        const contact = await client.getContactById(message.to);
-        recipientName = contact.pushname || contact.name || message.to;
-      } catch {
-        recipientName = message.to;
-      }
-    }
-    logger.info(
-      `[MENSAGEM ENVIADA] Para: ${recipientName} (${message.to}) | Mensagem: \"${message.body}\"`
-    );
-
-    // Salva no banco de dados
-    try {
-      const messageData = {
-        chatId: chat.id._serialized,
-        id: message.id.id,
-        timestamp: message.timestamp,
-        isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
-        senderName: 'Bot Whts',
-        type: message.type,
-        body: message.body,
-        fromMe: true
-      };
-      await db.addMessage(messageData);
-    } catch (dbErr) {
-      logger.error('Erro ao salvar mensagem enviada no banco:', dbErr);
-    }
-
-    // Se a mensagem enviada for um comando para o contato específico, executa o comando
-    const targetContact = '554899931227@c.us';
-    const prefix = config.commandPrefix;
-    logger.info(`[DEBUG] Verificando: to=${message.to}, target=${targetContact}, body="${message.body}", prefix="${prefix}", startsWith=${message.body?.startsWith(prefix)}`);
-
-    if (message.to === targetContact && message.body && message.body.startsWith(prefix)) {
-      logger.info(`[EXECUTANDO COMANDO ENVIADO] ${message.body} para ${recipientName}`);
-
-      try {
-        const args = message.body.slice(prefix.length).trim().split(/ +/);
-        const commandName = args.shift().toLowerCase();
-        const command = client.commands.get(commandName);
-
-        logger.info(`[DEBUG] CommandName: ${commandName}, Command found: ${!!command}`);
-        if (command) {
-          const start = Date.now();
-          logger.info(`[DEBUG] Executando comando ${commandName}...`);
-          await command.execute(message, args, client);
+    // Se for um comando, processa normalmente
+    if (isCommand) {
+      logger.info(`[EXECUTANDO COMANDO ENVIADO] ${message.body} para ${message.to}`);
+      
+      const args = message.body.slice((config.commandPrefix || '!').length).trim().split(/ +/);
+      const commandName = args.shift().toLowerCase();
+      const command = client.commands.get(commandName);
+      
+      logger.info(`[DEBUG] CommandName: ${commandName}, Command found: ${!!command}`);
+      
+      if (command) {
+        logger.info(`[DEBUG] Executando comando ${commandName}...`);
+        const start = Date.now();
+        try {
+          // Cria um objeto mock de mensagem para compatibilidade com os comandos
+          const mockMsg = {
+            ...message,
+            reply: async (text) => {
+              await client.sendMessage(message.to, text);
+            },
+            getChat: async () => {
+              return await client.getChatById(message.to);
+            },
+            _data: {
+              notifyName: 'Auto-executado'
+            }
+          };
+          
+          await command.execute(mockMsg, args, client);
           const duration = Date.now() - start;
           logger.info(`[COMANDO EXECUTADO] ${command.name} (auto-executado) em ${duration}ms`);
-        } else {
-          logger.warn(`[COMANDO NÃO ENCONTRADO] ${commandName}`);
+        } catch (error) {
+          logger.error(`Erro ao executar comando auto-enviado: ${error.message}`, error);
         }
-      } catch (error) {
-        logger.error(`Erro ao executar comando auto-enviado: ${error.message}`, error);
       }
-    } else if (message.body && message.body.startsWith(prefix)) {
-      logger.info(`[DEBUG] Condições não atendidas - to match: ${message.to === targetContact}, body exists: ${!!message.body}, startsWith: ${message.body?.startsWith(prefix)}`);
+      return;
     }
+    
+    // Se não for comando, apenas registra que foi ignorado
+    logger.info(`[DEBUG] message_create disparado, mas ignorado (fromMe=true, não é comando): to=${message.to}, body=${message.body.substring(0, 50)}...`);
+    return;
+  }
+
+  const sender = await message.getContact();
+  const senderName = sender.pushname || sender.name || sender.number;
+  logger.info(`[MENSAGEM ENVIADA] Para: ${senderName} (${message.to}) | Mensagem: "${message.body}"`);
+
+  // Salva no banco de dados
+  try {
+    const messageData = {
+      chatId: message.to,
+      id: message.id.id,
+      timestamp: message.timestamp,
+      isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
+      senderName: 'Bot Whts',
+      type: message.type,
+      body: message.body,
+      fromMe: true
+    };
+    await db.addMessage(messageData);
+  } catch (dbErr) {
+    logger.error('Erro ao salvar mensagem enviada no banco:', dbErr);
+  }
+
+  // Se a mensagem enviada for um comando para o contato específico, executa o comando
+  const targetContact = '554899931227@c.us';
+  const prefix = config.commandPrefix;
+  logger.info(`[DEBUG] Verificando: to=${message.to}, target=${targetContact}, body="${message.body}", prefix="${prefix}", startsWith=${message.body?.startsWith(prefix)}`);
+
+  if (message.to === targetContact && message.body && message.body.startsWith(prefix)) {
+    logger.info(`[EXECUTANDO COMANDO ENVIADO] ${message.body} para ${senderName}`);
+
+    try {
+      const args = message.body.slice(prefix.length).trim().split(/ +/);
+      const commandName = args.shift().toLowerCase();
+      const command = client.commands.get(commandName);
+
+      logger.info(`[DEBUG] CommandName: ${commandName}, Command found: ${!!command}`);
+      if (command) {
+        const start = Date.now();
+        logger.info(`[DEBUG] Executando comando ${commandName}...`);
+        await command.execute(message, args, client);
+        const duration = Date.now() - start;
+        logger.info(`[COMANDO EXECUTADO] ${command.name} (auto-executado) em ${duration}ms`);
+      } else {
+        logger.warn(`[COMANDO NÃO ENCONTRADO] ${commandName}`);
+      }
+    } catch (error) {
+      logger.error(`Erro ao executar comando auto-enviado: ${error.message}`, error);
+    }
+  } else if (message.body && message.body.startsWith(prefix)) {
+    logger.info(`[DEBUG] Condições não atendidas - to match: ${message.to === targetContact}, body exists: ${!!message.body}, startsWith: ${message.body?.startsWith(prefix)}`);
   }
 });
 
