@@ -1,15 +1,14 @@
 const db = require('../../database');
 const { generatePendingSummary } = require('../../summarizer');
 const logger = require('../../logger');
+const { isAdmin } = require('../../utils/admin');
 
 module.exports = {
   name: 'pendencias',
   description: 'Envia um resumo de pendências do dia para o administrador.',
   category: 'util',
   async execute(message, args, client) {
-    // A verificação de administrador é mantida aqui por simplicidade,
-    // mas poderia ser movida para um middleware de comando no futuro.
-    if (message.from !== process.env.WHATSAPP_ADMIN_NUMBER) {
+    if (!isAdmin(message.from)) {
       // Ignora silenciosamente se não for o administrador
       return;
     }
@@ -21,7 +20,10 @@ module.exports = {
       const messages = await db.getMessagesByDate(todayStr);
 
       if (!messages || messages.length === 0) {
-        await client.sendMessage(message.from, "Nenhuma mensagem registrada hoje para gerar resumo de pendências.");
+        await client.sendMessage(
+          message.from,
+          'Nenhuma mensagem registrada hoje para gerar resumo de pendências.'
+        );
         return;
       }
 
@@ -29,17 +31,25 @@ module.exports = {
       const resumoPendencias = generatePendingSummary(messages);
 
       if (!resumoPendencias || resumoPendencias.trim() === '') {
-        await client.sendMessage(message.from, "Nenhuma pendência encontrada nas conversas de hoje.");
+        await client.sendMessage(
+          message.from,
+          'Nenhuma pendência encontrada nas conversas de hoje.'
+        );
         return;
       }
 
       // Envia o resumo como mensagem para o administrador
-      await client.sendMessage(message.from, `📋 *Resumo de Pendências de Hoje:*
-\n${resumoPendencias}`);
-
+      await client.sendMessage(
+        message.from,
+        `📋 *Resumo de Pendências de Hoje:*\n${resumoPendencias}`
+      );
+      await client.sendMessage(message.from, '✅ Resumo de pendências enviado.');
     } catch (error) {
       logger.error('Erro ao executar o comando !pendencias:', error);
-      await client.sendMessage(message.from, 'Ocorreu um erro ao gerar o resumo de pendências. Verifique os logs.');
+      await client.sendMessage(
+        message.from,
+        'Ocorreu um erro ao gerar o resumo de pendências. Verifique os logs.'
+      );
     }
   }
 };

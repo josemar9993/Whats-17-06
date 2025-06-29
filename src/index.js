@@ -1,6 +1,9 @@
 require('winston-daily-rotate-file');
 require('dotenv').config();
 
+const config = require('./config');
+const { getAdminIds, isAdmin } = require('./utils/admin');
+
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
 const express = require('express');
@@ -55,12 +58,18 @@ client.on('auth_failure', (msg) => {
   logger.error('Falha na autenticação:', msg);
 });
 
+client.on('disconnected', (reason) => {
+  logger.warn(`Cliente desconectado: ${reason}. Tentando reiniciar...`);
+  client.destroy();
+  client.initialize().catch((err) => logger.error('Erro ao reiniciar cliente:', err));
+});
+
 client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
   // Agendamento de tarefas com node-cron
   // Executa todo dia às 16h, horário de Brasília.
-  const summaryCron = process.env.DAILY_SUMMARY_CRON || '0 16 * * *';
+  const summaryCron = config.dailySummaryCron;
   
   cron.schedule(
     summaryCron,
@@ -77,20 +86,31 @@ client.on('ready', () => {
 
         const summaryText = await createDailySummary(chats); // Corrigido para createDailySummary
         
-        // Pega a lista de admins e envia para o primeiro da lista.
-        const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
+        const adminIds = getAdminIds();
         const primaryAdminId = adminIds[0];
 
         if (primaryAdminId) {
           await client.sendMessage(primaryAdminId, summaryText);
           logger.info(`[CRON] Resumo diário enviado via WhatsApp para o admin primário ${primaryAdminId}.`);
         } else {
-          logger.warn('[CRON] A variável de ambiente ADMIN_WHATSAPP_IDS não está definida. O resumo não foi enviado.');
+          logger.warn('[CRON] ADMIN_WHATSAPP_IDS não definido. O resumo não foi enviado.');
         }
 
         logger.info('[CRON] Tarefa de resumo diário concluída com sucesso.');
       } catch (error) {
         logger.error('[CRON] Erro ao executar a tarefa de resumo diário:', error.message);
+        try {
+          const adminIds = getAdminIds();
+          const adminId = adminIds[0];
+          if (adminId) {
+            await client.sendMessage(
+              adminId,
+              `⚠️ Falha ao gerar ou enviar o resumo diário: ${error.message}`
+            );
+          }
+        } catch (notifyErr) {
+          logger.error('Erro ao notificar administrador sobre falha do cron:', notifyErr);
+        }
       }
     },
     {
@@ -104,20 +124,19 @@ client.on('ready', () => {
 
 
 client.on('message', async (msg) => {
-  const prefix = process.env.COMMAND_PREFIX || '!';
-  const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '').split(',').map(id => id.trim());
+  const prefix = config.commandPrefix;
 
   const isCommand = msg.body.startsWith(prefix);
-  const isAdmin = adminIds.includes(msg.from);
+  const isAdminUser = isAdmin(msg.from);
 
-  // Se a mensagem for um comando e vier de um admin, NUNCA ignorar.
-  if (isCommand && isAdmin) {
-    // Continua para o processamento do comando.
+  // 1. Se for um comando de um admin, processe sempre.
+  if (isCommand && isAdminUser) {
+    // Continua para o bloco try/catch
   } else {
-    // Para outras mensagens, aplicar as regras de filtro:
-    // 1. Ignorar mensagens do próprio bot (que não sejam comandos de admin, já tratados acima).
-    // 2. Ignorar mensagens que não são comandos.
-    // 3. Ignorar atualizações de status.
+    // 2. Para todas as outras mensagens, ignore se:
+    //    - Veio do próprio bot (e não é um comando de admin, já tratado acima)
+    //    - Não é um comando
+    //    - É uma atualização de status
     if (msg.fromMe || !isCommand || msg.from === 'status@broadcast') {
       return;
     }
@@ -125,9 +144,20 @@ client.on('message', async (msg) => {
 
   try {
     // Salva a mensagem recebida no banco de dados (APENAS se não for do bot)
-    // A verificação !msg.fromMe é mantida para não salvar os próprios comandos no log de conversas.
     if (!msg.fromMe) {
-      await db.addMessageFromWhatsapp(msg);
+      try {
+        await db.addMessageFromWhatsapp(msg);
+      } catch (dbErr) {
+        logger.error('Erro ao salvar mensagem no banco:', dbErr);
+        const adminIds = getAdminIds();
+        const primaryAdmin = adminIds[0];
+        if (primaryAdmin) {
+          await client.sendMessage(
+            primaryAdmin,
+            `⚠️ Erro ao salvar mensagem no banco: ${dbErr.message}`
+          );
+        }
+      }
     }
 
     const args = msg.body.slice(prefix.length).trim().split(/ +/);
@@ -144,9 +174,10 @@ client.on('message', async (msg) => {
       return;
     }
 
-    // Executa o comando
-    await command.execute(msg, args);
-    logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName}`);
+    const start = Date.now();
+    await command.execute(msg, args, client);
+    const duration = Date.now() - start;
+    logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName} em ${duration}ms`);
 
   } catch (error) {
     logger.error(`Erro ao processar mensagem: ${error.message}`, error);

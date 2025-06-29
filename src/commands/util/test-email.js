@@ -15,7 +15,7 @@ module.exports = {
                 subject: 'Teste de Envio de E-mail via Bot WhatsApp',
                 text: 'Este é um e-mail de teste enviado diretamente pelo comando !test-email do bot.',
                 html: '<p>Este é um e-mail de teste enviado diretamente pelo comando <b>!test-email</b> do bot.</p>'
-            });
+            }, message.client);
 
             message.reply('E-mail de teste enviado com sucesso! Verifique a caixa de entrada.');
             logger.info('E-mail de teste enviado com sucesso.');

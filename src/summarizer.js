@@ -146,6 +146,60 @@ async function createDailySummary(allMessages) {
   return summary;
 }
 
+/**
+ * Gera um resumo de mensagens que possivelmente ficaram sem resposta.
+ * A heurística considera perguntas que não receberam retorno do usuário.
+ * @param {Array<Object>} allMessages - Lista de mensagens já agrupadas por data.
+ * @returns {string} Texto com as pendências encontradas.
+ */
+function generatePendingSummary(allMessages) {
+  if (!allMessages || allMessages.length === 0) {
+    return '';
+  }
+
+  // Agrupa mensagens por chat para verificar cada conversa separadamente
+  const chats = {};
+  for (const message of allMessages) {
+    const chatId = message.chatId;
+    if (!chats[chatId]) {
+      chats[chatId] = {
+        chatId,
+        name: message.senderName || chatId.replace('@c.us', ''),
+        messages: [],
+      };
+    }
+    chats[chatId].messages.push(message);
+  }
+
+  let summary = '';
+
+  for (const chat of Object.values(chats)) {
+    const pending = [];
+    const msgs = chat.messages;
+
+    for (let i = 0; i < msgs.length; i++) {
+      const msg = msgs[i];
+
+      // Considera perguntas de outros participantes
+      if (!msg.fromMe && msg.body && msg.body.includes('?')) {
+        const answered = msgs.slice(i + 1).some((next) => next.fromMe);
+        if (!answered) {
+          pending.push(`• ${msg.body.substring(0, 60)}...`);
+        }
+      }
+    }
+
+    if (pending.length > 0) {
+      summary += `👤 *${chat.name}*\n`;
+      summary += pending.join('\n');
+      summary += '\n\n';
+    }
+  }
+
+  return summary.trim();
+}
+
 module.exports = {
   createDailySummary,
+  generatePendingSummary,
 };
