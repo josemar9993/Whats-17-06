@@ -38,6 +38,14 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 .eslintrc.jsonc      - Regras básicas do ESLint
 ```
 
+## Comandos do Bot
+
+- `!ping` – responde "pong" para verificar se o bot está online.
+- `!pendencias` – envia ao administrador um resumo de perguntas sem resposta do dia.
+- `!resumo-hoje` – gera um resumo completo das conversas do dia (ou data informada).
+- `!todos` – menciona todos os participantes de um grupo.
+- `!test-email` – dispara um e-mail de teste para validar as credenciais.
+
 ## Configuração
 
 Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
@@ -49,7 +57,7 @@ DEFAULT_SUMMARY_DAYS=7
 DAILY_SUMMARY_CRON=0 16 * * *
 WHATSAPP_NOTIFY=false
 EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_PASSWORD=uiydrinsudkzsuqi
+EMAIL_PASS=uiydrinsudkzsuqi
 EMAIL_TO=schieste87@gmail.com
 # Porta usada pelo servidor Express opcional
 PORT=8080
@@ -102,6 +110,20 @@ Para testar o envio de e-mails sem precisar aguardar o agendamento, execute:
 node src/scripts/test-summary.js
 ```
 Você também pode gerar um resumo do dia pelo WhatsApp enviando o comando `!resumo-hoje`.
+
+## Testes
+
+Execute os testes unitários com:
+
+```bash
+npm test
+```
+
+Para verificar o padrão de código e formatação, utilize:
+
+```bash
+npm run lint
+```
 
 ## Considerações adicionais
 
