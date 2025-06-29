@@ -227,7 +227,7 @@ client.on('message_create', async (message) => {
     // Se a mensagem enviada for um comando para o contato específico, executa o comando
     const targetContact = '554899931227@c.us';
     const prefix = config.commandPrefix;
-    logger.info(`[DEBUG] Verificando: to=${message.to}, target=${targetContact}, body=\"${message.body}\", prefix=\"${prefix}\", startsWith=${message.body?.startsWith(prefix)}`);
+    logger.info(`[DEBUG] Verificando: to=${message.to}, target=${targetContact}, body="${message.body}", prefix="${prefix}", startsWith=${message.body?.startsWith(prefix)}`);
 
     if (message.to === targetContact && message.body && message.body.startsWith(prefix)) {
       logger.info(`[EXECUTANDO COMANDO ENVIADO] ${message.body} para ${recipientName}`);
@@ -250,7 +250,7 @@ client.on('message_create', async (message) => {
       } catch (error) {
         logger.error(`Erro ao executar comando auto-enviado: ${error.message}`, error);
       }
-    } else {
+    } else if (message.body && message.body.startsWith(prefix)) {
       logger.info(`[DEBUG] Condições não atendidas - to match: ${message.to === targetContact}, body exists: ${!!message.body}, startsWith: ${message.body?.startsWith(prefix)}`);
     }
   }
