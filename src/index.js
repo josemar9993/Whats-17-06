@@ -91,6 +91,20 @@ client.on('ready', () => {
         logger.info('[CRON] Tarefa de resumo diário concluída com sucesso.');
       } catch (error) {
         logger.error('[CRON] Erro ao executar a tarefa de resumo diário:', error.message);
+        try {
+          const adminIds = (process.env.ADMIN_WHATSAPP_IDS || '')
+            .split(',')
+            .map((id) => id.trim());
+          const adminId = adminIds[0];
+          if (adminId) {
+            await client.sendMessage(
+              adminId,
+              `⚠️ Falha ao gerar ou enviar o resumo diário: ${error.message}`
+            );
+          }
+        } catch (notifyErr) {
+          logger.error('Erro ao notificar administrador sobre falha do cron:', notifyErr);
+        }
       }
     },
     {
@@ -119,7 +133,22 @@ client.on('message', async (msg) => {
   try {
     // Salva a mensagem recebida no banco de dados (APENAS se não for do bot)
     if (!msg.fromMe) {
-      await db.addMessageFromWhatsapp(msg);
+      try {
+        await db.addMessageFromWhatsapp(msg);
+      } catch (dbErr) {
+        logger.error('Erro ao salvar mensagem no banco:', dbErr);
+        const adminIds = (process.env.ADMIN_WHATSAPP_IDS || process.env.WHATSAPP_ADMIN_NUMBER || '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
+        const primaryAdmin = adminIds[0];
+        if (primaryAdmin) {
+          await client.sendMessage(
+            primaryAdmin,
+            `⚠️ Erro ao salvar mensagem no banco: ${dbErr.message}`
+          );
+        }
+      }
     }
 
     // Ignora mensagens que não são comandos ou que vêm de status
