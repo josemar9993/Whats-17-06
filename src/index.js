@@ -3,18 +3,30 @@ require('dotenv').config();
 
 const config = require('./config');
 const { getAdminIds } = require('./utils/admin');
-
-const { Client, LocalAuth } = require('whatsapp-web.js');
-const qrcodeTerminal = require('qrcode-terminal');
-const express = require('express');
-const cron = require('node-cron');
 const logger = require('./logger');
 const db = require('./database');
 const { createDailySummary } = require('./summarizer');
 const fs = require('fs');
 const path = require('path');
 
+// Importar novas funcionalidades da Fase 1
+const CONSTANTS = require('./constants');
+const cache = require('./cache/manager');
+const validator = require('./validators/commandValidator');
+const errorHandler = require('./utils/errorHandler');
+const retryManager = require('./utils/retryManager');
+const rateLimiter = require('./middleware/rateLimiter');
+
+const { Client, LocalAuth } = require('whatsapp-web.js');
+const qrcodeTerminal = require('qrcode-terminal');
+const express = require('express');
+const cron = require('node-cron');
+
 const startTime = Date.now(); // Marca o início do bot para cálculo de uptime
+
+// Definir variáveis globais para integração
+global.botStartTime = startTime;
+global.whatsappClient = null;
 
 logger.info('Configurando o cliente do WhatsApp...');
 
@@ -30,6 +42,9 @@ const client = new Client({
 });
 
 client.startTime = startTime;
+
+// Definir cliente global para integração
+global.whatsappClient = client;
 
 // Carregar comandos
 client.commands = new Map();
@@ -143,17 +158,25 @@ client.on('message', async (msg) => {
   }
 
   try {
+    // Validar mensagem básica
+    const messageValidation = validator.validateMessage(msg);
+    if (messageValidation.error) {
+      logger.warn('Mensagem inválida recebida:', messageValidation.error.message);
+      return;
+    }
+
     await db.addMessageFromWhatsapp(msg);
     logger.info(`[MENSAGEM RECEBIDA] De: ${msg._data.notifyName || msg.from} | Mensagem: "${msg.body}"`);
   } catch (dbErr) {
-    logger.error('Erro ao salvar mensagem no banco:', dbErr);
-    const adminIds = getAdminIds();
-    const primaryAdmin = adminIds[0];
-    if (primaryAdmin) {
-      await client.sendMessage(
-        primaryAdmin,
-        `⚠️ Erro ao salvar mensagem no banco: ${dbErr.message}`
-      );
+    // Usar error handler para tratar erros de banco
+    const errorResponse = await errorHandler.handle(dbErr, {
+      operation: 'save_message',
+      userId: msg.from,
+      command: 'message_received'
+    });
+
+    if (errorResponse.shouldReply) {
+      await msg.reply(errorResponse.userMessage);
     }
   }
 
@@ -179,15 +202,36 @@ client.on('message', async (msg) => {
 
   const start = Date.now();
   try {
-    await command.execute(msg, args, client);
+    // Verificar rate limiting
+    const rateLimitResult = rateLimiter.checkLimit(msg.from, commandName);
+    if (!rateLimitResult.allowed) {
+      await msg.reply(`⏰ ${rateLimitResult.reason}. Tente novamente em ${rateLimitResult.retryAfter || 60} segundos.`);
+      return;
+    }
+
+    // Executar comando com timeout e retry se necessário
+    await retryManager.executeWithTimeout(async () => {
+      await command.execute(msg, args, client);
+    }, CONSTANTS.COMMAND_TIMEOUT);
+
     const duration = Date.now() - start;
     logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName || msg.from} em ${duration}ms`);
+    
   } catch (error) {
-    logger.error(`Erro ao processar comando: ${error.message}`, error);
-    try {
-      await msg.reply('Ocorreu um erro ao tentar executar esse comando.');
-    } catch (e) {
-      logger.error('Erro ao enviar mensagem de erro para o usuário:', e);
+    // Usar error handler centralizado
+    const errorResponse = await errorHandler.handle(error, {
+      operation: 'execute_command',
+      command: commandName,
+      userId: msg.from,
+      args: args
+    });
+
+    if (errorResponse.shouldReply) {
+      try {
+        await msg.reply(errorResponse.userMessage);
+      } catch (replyError) {
+        logger.error('Erro ao enviar mensagem de erro:', replyError);
+      }
     }
   }
 });

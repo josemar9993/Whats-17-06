@@ -5,6 +5,27 @@ jest.mock('../utils/admin', () => ({
   getAdminIds: jest.fn(() => ['admin'])
 }));
 
+// Mock das novas funcionalidades da Fase 1
+jest.mock('../cache/manager', () => ({
+  getOrSet: jest.fn((key, callback) => callback()),
+  get: jest.fn(),
+  set: jest.fn(),
+  flushAll: jest.fn()
+}));
+
+jest.mock('../validators/commandValidator', () => ({
+  validateSearchArgs: jest.fn((args) => ({
+    error: args.length === 0 ? new Error('Uso: !buscar <termo>') : null,
+    value: { term: args.join(' ') }
+  })),
+  sanitizeInput: jest.fn((input) => input)
+}));
+
+jest.mock('../utils/retryManager', () => ({
+  withDatabaseRetry: jest.fn((fn) => fn()),
+  executeWithTimeout: jest.fn((fn) => fn())
+}));
+
 const db = require('../database');
 const summarizer = require('../summarizer');
 const ping = require('../commands/util/ping');
