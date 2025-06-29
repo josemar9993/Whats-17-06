@@ -10,9 +10,13 @@ if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
 
+// Define se está rodando via PM2 (para evitar timestamp duplicado)
+const isRunningInPM2 = process.env.PM2_HOME || process.env.PM2_USAGE || process.env.NODE_APP_INSTANCE !== undefined;
+
 // Define um formato personalizado para o console
 const consoleFormat = winston.format.printf(({ level, message, timestamp, stack, ...metadata }) => {
-  let log = `${timestamp} ${level}: ${message}`;
+  // Se está rodando via PM2, não incluir timestamp próprio (PM2 já inclui)
+  let log = isRunningInPM2 ? `${level}: ${message}` : `${timestamp} ${level}: ${message}`;
   if (stack) {
     log = `${log}\n${stack}`;
   }
