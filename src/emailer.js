@@ -28,7 +28,7 @@ const transporter = nodemailer.createTransport({
  * Envia um e-mail de forma genérica.
  * @param {object} mailDetails - Objeto com os detalhes do e-mail (to, subject, text, html).
  */
-async function sendEmail(mailDetails) {
+async function sendEmail(mailDetails, client) {
   const mailOptions = {
     from: process.env.EMAIL_USER,
     to: mailDetails.to || process.env.EMAIL_TO, // Usa o 'to' dos detalhes ou o padrão
@@ -41,10 +41,28 @@ async function sendEmail(mailDetails) {
     await transporter.sendMail(mailOptions);
     logger.info(`E-mail "${mailOptions.subject}" enviado com sucesso para ${mailOptions.to}!`);
   } catch (error) {
-    // Melhora o log para garantir que a mensagem de erro seja uma string.
     const errorMessage = error.message || error.toString();
     logger.error(`Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`);
-    // Re-lançar o erro pode ser útil se o chamador precisar saber que falhou
+
+    if (client) {
+      try {
+        const adminIds = (process.env.ADMIN_WHATSAPP_IDS || process.env.WHATSAPP_ADMIN_NUMBER || '')
+          .split(',')
+          .map((id) => id.trim())
+          .filter(Boolean);
+        const adminId = adminIds[0];
+
+        if (adminId) {
+          await client.sendMessage(adminId, `⚠️ Falha ao enviar e-mail: ${errorMessage}`);
+          logger.info(`Notificação de falha enviada via WhatsApp para ${adminId}.`);
+        } else {
+          logger.warn('Admin não definido para receber notificação de falha por WhatsApp.');
+        }
+      } catch (notifyErr) {
+        logger.error('Erro ao enviar notificação de falha via WhatsApp:', notifyErr);
+      }
+    }
+
     throw error;
   }
 }
