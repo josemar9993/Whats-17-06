@@ -79,10 +79,10 @@ Crie um arquivo `.env` baseado em `.env.example` com as variáveis abaixo:
 WHATSAPP_ADMIN_NUMBER=554899931227@c.us
 ADMIN_WHATSAPP_IDS=554899931227@c.us
 DEFAULT_SUMMARY_DAYS=7
-DAILY_SUMMARY_CRON=0 16 * * *
-WHATSAPP_NOTIFY=false
+DAILY_SUMMARY_CRON="0 16 * * *"
+WHATSAPP_NOTIFY=true
 EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_PASS=uiydrinsudkzsuqi
+EMAIL_PASS=ybzunhdulyozsyta
 EMAIL_TO=schieste87@gmail.com
 # Porta usada pelo servidor Express opcional
 PORT=8080
