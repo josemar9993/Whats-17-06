@@ -44,6 +44,11 @@ module.exports = {
       logger.info(`[AÇÃO GRUPO] Marquei todos no grupo "${chat.name}".`);
     } catch (err) {
       logger.error('Erro no comando todos:', err);
+      try {
+        await message.reply('Ocorreu um erro ao mencionar todos no grupo.');
+      } catch (e) {
+        logger.error('Falha ao enviar mensagem de erro no comando todos:', e);
+      }
     }
   }
 };
