@@ -2,7 +2,7 @@ require('winston-daily-rotate-file');
 require('dotenv').config();
 
 const config = require('./config');
-const { getAdminIds, isAdmin } = require('./utils/admin');
+const { getAdminIds } = require('./utils/admin');
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
@@ -199,7 +199,7 @@ client.on('message_create', async (message) => {
       try {
         const contact = await client.getContactById(message.to);
         recipientName = contact.pushname || contact.name || message.to;
-      } catch (err) {
+      } catch {
         recipientName = message.to;
       }
     }
