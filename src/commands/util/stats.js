@@ -11,14 +11,15 @@ module.exports = {
     let totalGrupos = 0;
     let totalUsuarios = 0;
     try {
-      const allMsgs = await db.getAllMessages ? await db.getAllMessages() : [];
+      const allMsgs = await db.getAllMessages();
       totalMsgs = allMsgs.length;
       const chatIds = new Set(allMsgs.map(m => m.chatId));
       totalChats = chatIds.size;
       totalGrupos = Array.from(chatIds).filter(id => id.endsWith('@g.us')).length;
       totalUsuarios = Array.from(new Set(allMsgs.map(m => m.senderName || m.contactName || m.from))).length;
     } catch (e) {
-      // fallback se não houver db.getAllMessages
+      await message.reply('Erro ao buscar estatísticas: ' + e.message);
+      return;
     }
     await message.reply(
       `📊 Estatísticas rápidas:\n` +

@@ -1,17 +1,11 @@
 const fs = require('fs');
 const path = require('path');
-const { getAdminIds } = require('../../utils/admin');
 
 module.exports = {
   name: 'logs',
-  description: 'Envia os últimos logs do bot (apenas admin).',
-  category: 'admin',
+  description: 'Envia os últimos logs do bot.',
+  category: 'util',
   async execute(message, args, client) {
-    const adminIds = getAdminIds();
-    if (!adminIds.includes(message.from)) {
-      await message.reply('Apenas administradores podem solicitar logs.');
-      return;
-    }
     const logDir = path.resolve(__dirname, '../../logs');
     const files = fs.readdirSync(logDir).filter(f => f.endsWith('.log'));
     if (files.length === 0) {

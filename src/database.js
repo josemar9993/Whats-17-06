@@ -132,9 +132,30 @@ function searchMessages(term) {
   });
 }
 
+function getAllMessages() {
+  return new Promise((resolve, reject) => {
+    const query = `SELECT * FROM messages ORDER BY timestamp`;
+    db.all(query, [], (err, rows) => {
+      if (err) return reject(err);
+      const messages = rows.map((r) => ({
+        id: r.id,
+        chatId: r.chatId,
+        timestamp: r.timestamp,
+        isoTimestamp: r.isoTimestamp,
+        senderName: r.senderName,
+        type: r.type,
+        body: r.body,
+        fromMe: r.fromMe === 1,
+      }));
+      resolve(messages);
+    });
+  });
+}
+
 module.exports = {
   addMessage,
   addMessageFromWhatsapp,
   getMessagesByDate,
   searchMessages,
+  getAllMessages,
 };
