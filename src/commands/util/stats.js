@@ -4,7 +4,7 @@ module.exports = {
   name: 'stats',
   description: 'Mostra estatísticas rápidas do bot.',
   category: 'util',
-  async execute(message, args, client) {
+  async execute(message) {
     // Busca estatísticas básicas
     let totalMsgs = 0;
     let totalChats = 0;

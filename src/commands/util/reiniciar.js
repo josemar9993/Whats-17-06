@@ -4,7 +4,7 @@ module.exports = {
   name: 'reiniciar',
   description: 'Reinicia o bot (apenas admin).',
   category: 'admin',
-  async execute(message, args, client) {
+  async execute(message) {
     const adminIds = getAdminIds();
     if (!adminIds.includes(message.from)) {
       await message.reply('Apenas administradores podem reiniciar o bot.');

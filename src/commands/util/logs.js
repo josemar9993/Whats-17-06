@@ -5,7 +5,7 @@ module.exports = {
   name: 'logs',
   description: 'Envia os últimos logs do bot.',
   category: 'util',
-  async execute(message, args, client) {
+  async execute(message) {
     const logDir = path.resolve(__dirname, '../../logs');
     const files = fs.readdirSync(logDir).filter(f => f.endsWith('.log'));
     if (files.length === 0) {
