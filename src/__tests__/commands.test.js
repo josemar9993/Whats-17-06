@@ -1,11 +1,15 @@
 jest.mock('../database');
 jest.mock('../summarizer');
+jest.mock('../utils/admin', () => ({
+  isAdmin: jest.fn((id) => id === 'admin'),
+  getAdminIds: jest.fn(() => ['admin'])
+}));
 
 const db = require('../database');
 const summarizer = require('../summarizer');
-
 const ping = require('../commands/util/ping');
 const pendencias = require('../commands/util/pendencias');
+const buscar = require('../commands/util/buscar');
 
 describe('comandos', () => {
   test('ping responde pong', async () => {
@@ -30,5 +34,12 @@ describe('comandos', () => {
     await pendencias.execute(message, [], client);
 
     expect(client.sendMessage).toHaveBeenCalledWith('admin', expect.stringContaining('Resumo'));
+  });
+
+  test('buscar retorna resultados', async () => {
+    db.searchMessages.mockResolvedValue([{ senderName: 'Alice', body: 'pedido' }]);
+    const message = { from: 'admin', reply: jest.fn() };
+    await buscar.execute(message, ['pedido']);
+    expect(message.reply).toHaveBeenCalledWith(expect.stringContaining('Alice'));
   });
 });

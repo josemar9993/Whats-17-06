@@ -43,6 +43,14 @@ Exemplo:
 !test-email
 ```
 
+## !buscar
+Pesquisa mensagens contendo um termo específico no banco de dados.
+
+Exemplo:
+```
+!buscar pedido
+```
+
 ## !ajuda
 Lista todos os comandos disponíveis conforme este documento.
 

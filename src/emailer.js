@@ -2,8 +2,9 @@
 
 // Importações necessárias
 const logger = require('./logger');
-require('dotenv').config();
 const nodemailer = require('nodemailer');
+const config = require('./config');
+const { getAdminIds } = require('./utils/admin');
 
 /**
  * Configura o transportador de e-mail (Gmail) com base nas variáveis de ambiente.
@@ -13,8 +14,8 @@ const transporter = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
+    user: config.emailUser,
+    pass: config.emailPass
   },
   tls: {
     rejectUnauthorized: false
@@ -30,8 +31,8 @@ const transporter = nodemailer.createTransport({
  */
 async function sendEmail(mailDetails, client) {
   const mailOptions = {
-    from: process.env.EMAIL_USER,
-    to: mailDetails.to || process.env.EMAIL_TO, // Usa o 'to' dos detalhes ou o padrão
+    from: config.emailUser,
+    to: mailDetails.to || config.emailTo,
     subject: mailDetails.subject,
     text: mailDetails.text,
     html: mailDetails.html, // Adiciona suporte a HTML
@@ -46,10 +47,7 @@ async function sendEmail(mailDetails, client) {
 
     if (client) {
       try {
-        const adminIds = (process.env.ADMIN_WHATSAPP_IDS || process.env.WHATSAPP_ADMIN_NUMBER || '')
-          .split(',')
-          .map((id) => id.trim())
-          .filter(Boolean);
+        const adminIds = getAdminIds();
         const adminId = adminIds[0];
 
         if (adminId) {
