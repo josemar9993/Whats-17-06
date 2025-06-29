@@ -269,8 +269,25 @@ client.initialize().catch((err) => {
 const app = express();
 const port = process.env.PORT || 8080;
 app.get('/health', (req, res) => {
-  res.send('OK');
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: process.env.npm_package_version || '1.0.0'
+  });
 });
+
+// Adicionar tratamento de erro para porta em uso
 app.listen(port, () => {
   logger.info(`Servidor de health check ouvindo na porta ${port}`);
+}).on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    logger.error(`Porta ${port} já está em uso. Tentando outra porta...`);
+    const alternativePort = port + 1;
+    app.listen(alternativePort, () => {
+      logger.info(`Servidor de health check ouvindo na porta alternativa ${alternativePort}`);
+    });
+  } else {
+    logger.error('Erro ao iniciar servidor:', err);
+  }
 });

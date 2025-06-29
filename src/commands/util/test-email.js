@@ -1,6 +1,5 @@
 // src/commands/util/test-email.js
 const { sendEmail } = require('../../emailer');
-const logger = require('../../logger');
 
 module.exports = {
     name: 'test-email',
