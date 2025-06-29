@@ -17,6 +17,19 @@ Bot de WhatsApp em Node.js voltado para registro de conversas e envio de resumos
 - **Servidor Express** para health check em `/health` (porta `8080` por padrão).
 - **Logs estruturados**: `winston` com rotação diária em `logs/`.
 - **Qualidade garantida**: ESLint, Prettier e testes unitários com Jest.
+## Fluxo Simplificado
+
+```mermaid
+graph TD
+  A[Usuário no WhatsApp] -->|mensagens| B(Bot)
+  B --> C{Comandos}
+  C -->|salvar| D[SQLite]
+  C -->|resumo diário| E[cron 23:50]
+  E --> F[Gerar resumo]
+  F --> G[Nodemailer]
+  G --> H[E-mail do Admin]
+```
+
 
 ## Estrutura do repositório
 
@@ -40,11 +53,21 @@ INSTRUCOES_DEPLOY.md - Passo a passo de configuração na Coolify
 
 ## Comandos do Bot
 
+- `!ajuda` – lista todos os comandos disponíveis.
 - `!ping` – responde "pong" para verificar se o bot está online.
 - `!pendencias` – envia ao administrador um resumo de perguntas sem resposta do dia.
-- `!resumo-hoje` – gera um resumo completo das conversas do dia (ou data informada).
+- `!resumo-hoje` – gera um resumo das conversas de uma data ou intervalo (ex.: `!resumo-hoje 01/02/2024 05/02/2024`).
 - `!todos` – menciona todos os participantes de um grupo.
 - `!test-email` – dispara um e-mail de teste para validar as credenciais.
+### Exemplos
+```bash
+!ajuda
+!ping
+!pendencias
+!resumo-hoje 01/02/2024 05/02/2024
+!todos
+!test-email
+```
 
 ## Configuração
 

@@ -21,7 +21,10 @@ module.exports = {
       const messages = await db.getMessagesByDate(todayStr);
 
       if (!messages || messages.length === 0) {
-        await client.sendMessage(message.from, "Nenhuma mensagem registrada hoje para gerar resumo de pendências.");
+        await client.sendMessage(
+          message.from,
+          'Nenhuma mensagem registrada hoje para gerar resumo de pendências.'
+        );
         return;
       }
 
@@ -29,17 +32,25 @@ module.exports = {
       const resumoPendencias = generatePendingSummary(messages);
 
       if (!resumoPendencias || resumoPendencias.trim() === '') {
-        await client.sendMessage(message.from, "Nenhuma pendência encontrada nas conversas de hoje.");
+        await client.sendMessage(
+          message.from,
+          'Nenhuma pendência encontrada nas conversas de hoje.'
+        );
         return;
       }
 
       // Envia o resumo como mensagem para o administrador
-      await client.sendMessage(message.from, `📋 *Resumo de Pendências de Hoje:*
-\n${resumoPendencias}`);
-
+      await client.sendMessage(
+        message.from,
+        `📋 *Resumo de Pendências de Hoje:*\n${resumoPendencias}`
+      );
+      await client.sendMessage(message.from, '✅ Resumo de pendências enviado.');
     } catch (error) {
       logger.error('Erro ao executar o comando !pendencias:', error);
-      await client.sendMessage(message.from, 'Ocorreu um erro ao gerar o resumo de pendências. Verifique os logs.');
+      await client.sendMessage(
+        message.from,
+        'Ocorreu um erro ao gerar o resumo de pendências. Verifique os logs.'
+      );
     }
   }
 };
