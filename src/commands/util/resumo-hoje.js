@@ -17,19 +17,20 @@ module.exports = {
   async execute(msg, args) {
     const { getAdminIds, isAdmin } = require('../../utils/admin');
     const adminIds = getAdminIds();
-    const senderId = msg.from;
+    const senderId = msg.author || msg.from;
 
     if (adminIds.length === 0) {
       logger.warn('Comando !resumo-hoje: nenhum administrador definido.');
       return;
     }
 
-    if (!isAdmin(senderId)) {
+    // Permite a execução se for o próprio bot (fromMe) ou se o remetente for um admin
+    if (!msg.fromMe && !isAdmin(senderId)) {
       await msg.reply('Você não tem permissão para usar este comando.');
       return;
     }
 
-    const adminContactId = senderId;
+    const adminContactId = msg.fromMe ? msg.to : senderId;
 
     let startDate;
     let endDate;

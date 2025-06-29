@@ -10,11 +10,16 @@ const express = require('express');
 const cron = require('node-cron');
 const logger = require('./logger');
 const db = require('./database');
-const { createDailySummary } = require('./summarizer'); // Corrigido para createDailySummary
+const { createDailySummary } = require('./summarizer');
 const fs = require('fs');
 const path = require('path');
 
 logger.info('Configurando o cliente do WhatsApp...');
+
+// Debug da configuração
+logger.info(`[DEBUG CONFIG] commandPrefix: "${config.commandPrefix}"`);
+logger.info(`[DEBUG CONFIG] dailySummaryCron: "${config.dailySummaryCron}"`);
+
 const client = new Client({
   authStrategy: new LocalAuth(),
   puppeteer: {
@@ -24,7 +29,7 @@ const client = new Client({
 
 // Carregar comandos
 client.commands = new Map();
-const commandsPath = path.join(__dirname, 'commands'); // Definir o caminho base para os comandos
+const commandsPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(commandsPath);
 
 for (const folder of commandFolders) {
@@ -45,6 +50,7 @@ for (const folder of commandFolders) {
 }
 
 logger.info('Configurando eventos do cliente...');
+
 client.on('qr', (qr) => {
   logger.info('QR Code recebido, escaneie por favor:');
   qrcodeTerminal.generate(qr, { small: true });
@@ -67,8 +73,6 @@ client.on('disconnected', (reason) => {
 client.on('ready', () => {
   logger.info('Cliente do WhatsApp está pronto!');
 
-  // Agendamento de tarefas com node-cron
-  // Executa todo dia às 16h, horário de Brasília.
   const summaryCron = config.dailySummaryCron;
   
   cron.schedule(
@@ -76,15 +80,15 @@ client.on('ready', () => {
     async () => {
       logger.info(`[CRON] Executando tarefa de resumo diário agendada para "${summaryCron}"...`);
       try {
-        const today = new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-        const chats = await db.getMessagesByDate(today); // Corrigido para getMessagesByDate
+        const today = new Date().toISOString().slice(0, 10);
+        const chats = await db.getMessagesByDate(today);
 
         if (!chats || chats.length === 0) {
           logger.info(`[CRON] Nenhuma conversa encontrada para ${today}, resumo não gerado.`);
-          return; // Sai se não houver chats
+          return;
         }
 
-        const summaryText = await createDailySummary(chats); // Corrigido para createDailySummary
+        const summaryText = await createDailySummary(chats);
         
         const adminIds = getAdminIds();
         const primaryAdminId = adminIds[0];
@@ -122,66 +126,60 @@ client.on('ready', () => {
   logger.info(`[CRON] Tarefa de resumo diário agendada com a expressão: "${summaryCron}" no fuso horário de São Paulo.`);
 });
 
-
 client.on('message', async (msg) => {
-  const prefix = config.commandPrefix;
+  const prefix = config.commandPrefix || '!';
 
-  const isCommand = msg.body.startsWith(prefix);
-  const isAdminUser = isAdmin(msg.from);
+  if (msg.from === 'status@broadcast') {
+    return;
+  }
 
-  // 1. Se for um comando de um admin, processe sempre.
-  if (isCommand && isAdminUser) {
-    // Continua para o bloco try/catch
-  } else {
-    // 2. Para todas as outras mensagens, ignore se:
-    //    - Veio do próprio bot (e não é um comando de admin, já tratado acima)
-    //    - Não é um comando
-    //    - É uma atualização de status
-    if (msg.fromMe || !isCommand || msg.from === 'status@broadcast') {
-      return;
-    }
+  if (msg.fromMe) {
+    logger.info(`[MENSAGEM PRÓPRIA] ${msg.body}`);
+    return;
   }
 
   try {
-    // Salva a mensagem recebida no banco de dados (APENAS se não for do bot)
-    if (!msg.fromMe) {
-      try {
-        await db.addMessageFromWhatsapp(msg);
-      } catch (dbErr) {
-        logger.error('Erro ao salvar mensagem no banco:', dbErr);
-        const adminIds = getAdminIds();
-        const primaryAdmin = adminIds[0];
-        if (primaryAdmin) {
-          await client.sendMessage(
-            primaryAdmin,
-            `⚠️ Erro ao salvar mensagem no banco: ${dbErr.message}`
-          );
-        }
-      }
+    await db.addMessageFromWhatsapp(msg);
+    logger.info(`[MENSAGEM RECEBIDA] De: ${msg._data.notifyName || msg.from} | Mensagem: "${msg.body}"`);
+  } catch (dbErr) {
+    logger.error('Erro ao salvar mensagem no banco:', dbErr);
+    const adminIds = getAdminIds();
+    const primaryAdmin = adminIds[0];
+    if (primaryAdmin) {
+      await client.sendMessage(
+        primaryAdmin,
+        `⚠️ Erro ao salvar mensagem no banco: ${dbErr.message}`
+      );
     }
+  }
 
-    const args = msg.body.slice(prefix.length).trim().split(/ +/);
-    const commandName = args.shift().toLowerCase();
+  // Verifica se é um comando
+  const isCommand = msg.body && msg.body.startsWith(prefix);
+  if (!isCommand) {
+    return;
+  }
 
-    const command = client.commands.get(commandName);
+  const args = msg.body.slice(prefix.length).trim().split(/ +/);
+  const commandName = args.shift().toLowerCase();
+  const command = client.commands.get(commandName);
 
-    if (!command) {
-      // Responde apenas se a menção for direta ou em grupos
-      const chat = await msg.getChat();
-      if (!chat.isGroup || msg.mentionedIds.includes(client.info.wid._serialized)) {
-         await msg.reply('Comando não reconhecido. Digite `!ajuda` para ver a lista de comandos.');
-      }
-      return;
+  // Processa o comando
+  if (!command) {
+    // Responde apenas se a menção for direta ou em grupos
+    const chat = await msg.getChat();
+    if (!chat.isGroup || msg.mentionedIds.includes(client.info.wid._serialized)) {
+      await msg.reply('Comando não reconhecido. Digite `!ajuda` para ver a lista de comandos.');
     }
+    return;
+  }
 
-    const start = Date.now();
+  const start = Date.now();
+  try {
     await command.execute(msg, args, client);
     const duration = Date.now() - start;
-    logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName} em ${duration}ms`);
-
+    logger.info(`[COMANDO EXECUTADO] ${command.name} por ${msg._data.notifyName || msg.from} em ${duration}ms`);
   } catch (error) {
-    logger.error(`Erro ao processar mensagem: ${error.message}`, error);
-    // Evita crashar o bot por um erro em um único comando/mensagem
+    logger.error(`Erro ao processar comando: ${error.message}`, error);
     try {
       await msg.reply('Ocorreu um erro ao tentar executar esse comando.');
     } catch (e) {
@@ -193,27 +191,68 @@ client.on('message', async (msg) => {
 // Registra mensagens enviadas pelo bot
 client.on('message_create', async (message) => {
   if (message.fromMe) {
+    logger.info(`[DEBUG] message_create disparado: fromMe=${message.fromMe}, to=${message.to}, body=${message.body}`);
+
     const chat = await message.getChat();
     let recipientName = chat.name;
     if (!chat.isGroup) {
-      const contact = await client.getContactById(message.to);
-      recipientName = contact.pushname || contact.name || message.to;
+      try {
+        const contact = await client.getContactById(message.to);
+        recipientName = contact.pushname || contact.name || message.to;
+      } catch (err) {
+        recipientName = message.to;
+      }
     }
     logger.info(
-      `[MENSAGEM ENVIADA] Para: ${recipientName} (${message.to}) | Mensagem: "${message.body}"`
+      `[MENSAGEM ENVIADA] Para: ${recipientName} (${message.to}) | Mensagem: \"${message.body}\"`
     );
 
-    const messageData = {
-      chatId: chat.id._serialized,
-      id: message.id.id,
-      timestamp: message.timestamp,
-      isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
-      senderName: 'Eu',
-      type: message.type,
-      body: message.body,
-      fromMe: true
-    };
-    await db.addMessage(messageData);
+    // Salva no banco de dados
+    try {
+      const messageData = {
+        chatId: chat.id._serialized,
+        id: message.id.id,
+        timestamp: message.timestamp,
+        isoTimestamp: new Date(message.timestamp * 1000).toISOString(),
+        senderName: 'Bot Whts',
+        type: message.type,
+        body: message.body,
+        fromMe: true
+      };
+      await db.addMessage(messageData);
+    } catch (dbErr) {
+      logger.error('Erro ao salvar mensagem enviada no banco:', dbErr);
+    }
+
+    // Se a mensagem enviada for um comando para o contato específico, executa o comando
+    const targetContact = '554899931227@c.us';
+    const prefix = config.commandPrefix;
+    logger.info(`[DEBUG] Verificando: to=${message.to}, target=${targetContact}, body=\"${message.body}\", prefix=\"${prefix}\", startsWith=${message.body?.startsWith(prefix)}`);
+
+    if (message.to === targetContact && message.body && message.body.startsWith(prefix)) {
+      logger.info(`[EXECUTANDO COMANDO ENVIADO] ${message.body} para ${recipientName}`);
+
+      try {
+        const args = message.body.slice(prefix.length).trim().split(/ +/);
+        const commandName = args.shift().toLowerCase();
+        const command = client.commands.get(commandName);
+
+        logger.info(`[DEBUG] CommandName: ${commandName}, Command found: ${!!command}`);
+        if (command) {
+          const start = Date.now();
+          logger.info(`[DEBUG] Executando comando ${commandName}...`);
+          await command.execute(message, args, client);
+          const duration = Date.now() - start;
+          logger.info(`[COMANDO EXECUTADO] ${command.name} (auto-executado) em ${duration}ms`);
+        } else {
+          logger.warn(`[COMANDO NÃO ENCONTRADO] ${commandName}`);
+        }
+      } catch (error) {
+        logger.error(`Erro ao executar comando auto-enviado: ${error.message}`, error);
+      }
+    } else {
+      logger.info(`[DEBUG] Condições não atendidas - to match: ${message.to === targetContact}, body exists: ${!!message.body}, startsWith: ${message.body?.startsWith(prefix)}`);
+    }
   }
 });
 
@@ -231,5 +270,3 @@ app.get('/health', (req, res) => {
 app.listen(port, () => {
   logger.info(`Servidor de health check ouvindo na porta ${port}`);
 });
-
-// Forçando a atualização para limpar os erros do servidor.

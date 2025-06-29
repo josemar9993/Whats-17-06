@@ -2,6 +2,7 @@ require('dotenv').config();
 const path = require('path');
 
 const config = {
+  commandPrefix: process.env.COMMAND_PREFIX || '!',
   adminIds: (process.env.ADMIN_WHATSAPP_IDS || process.env.WHATSAPP_ADMIN_NUMBER || '')
     .split(',')
     .map((id) => id.trim())
