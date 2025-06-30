@@ -1,6 +1,6 @@
 const logger = require('../logger');
 const CONSTANTS = require('../constants');
-const { isAdmin } = require('./admin');
+const { isAdmin } = require('../utils/admin');
 
 class RateLimiter {
   constructor() {
