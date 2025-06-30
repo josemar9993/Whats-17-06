@@ -26,11 +26,11 @@ class CacheManager {
   }
   
   setupEventListeners() {
-    this.cache.on('set', (key, value) => {
+    this.cache.on('set', (key) => {
       logger.debug(`Cache SET: ${key}`);
     });
     
-    this.cache.on('expired', (key, value) => {
+    this.cache.on('expired', (key) => {
       logger.debug(`Cache EXPIRED: ${key}`);
     });
     

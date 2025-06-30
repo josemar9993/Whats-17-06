@@ -1,6 +1,6 @@
 const logger = require('../logger');
 const { getAdminIds } = require('../utils/admin');
-const CONSTANTS = require('../constants');
+// const CONSTANTS = require('../constants'); // Disponível se necessário
 
 class ErrorHandler {
   constructor() {

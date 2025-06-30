@@ -176,7 +176,7 @@ class RateLimiter {
     const stats = {
       totalUsers: this.userRequests.size,
       blockedUsers: Array.from(this.blockedUsers.entries())
-        .filter(([_, blockUntil]) => now < blockUntil).length,
+        .filter(([, blockUntil]) => now < blockUntil).length,
       activeUsers: 0,
       topUsers: [],
       configuration: {

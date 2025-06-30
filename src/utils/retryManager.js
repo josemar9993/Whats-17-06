@@ -18,7 +18,6 @@ class RetryManager {
       context: options.context || 'unknown'
     };
     
-    let lastError;
     let delay = config.initialDelay;
     
     for (let attempt = 1; attempt <= config.maxAttempts; attempt++) {
@@ -38,33 +37,30 @@ class RetryManager {
         this.updateStats(config.context, attempt, true);
         
         return result;
-        
-      } catch (error) {
-        lastError = error;
-        
-        // Verificar se deve tentar novamente
-        if (attempt === config.maxAttempts || !config.retryOn(error, attempt)) {
-          logger.error(`Operação falhou após ${attempt} tentativas`, {
-            context: config.context,
-            error: error.message,
-            attempts: attempt
-          });
+        } catch (error) {
+          // Verificar se deve tentar novamente
+          if (attempt === config.maxAttempts || !config.retryOn(error, attempt)) {
+            logger.error(`Operação falhou após ${attempt} tentativas`, {
+              context: config.context,
+              error: error.message,
+              attempts: attempt
+            });
+            
+            // Atualizar estatísticas
+            this.updateStats(config.context, attempt, false);
+            
+            throw error;
+          }
           
-          // Atualizar estatísticas
-          this.updateStats(config.context, attempt, false);
+          // Executar callback de retry
+          await config.onRetry(error, attempt, delay);
           
-          throw error;
+          // Aguardar antes da próxima tentativa
+          await this.sleep(delay);
+          
+          // Calcular próximo delay com backoff exponencial
+          delay = Math.min(delay * config.backoffFactor, config.maxDelay);
         }
-        
-        // Executar callback de retry
-        await config.onRetry(error, attempt, delay);
-        
-        // Aguardar antes da próxima tentativa
-        await this.sleep(delay);
-        
-        // Calcular próximo delay com backoff exponencial
-        delay = Math.min(delay * config.backoffFactor, config.maxDelay);
-      }
     }
   }
   
@@ -83,7 +79,7 @@ class RetryManager {
   }
   
   // Condição padrão para retry
-  defaultRetryCondition(error, attempt) {
+  defaultRetryCondition(error) {
     // Não tentar novamente para erros de validação
     if (error.message.includes('validation')) {
       return false;

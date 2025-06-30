@@ -11,7 +11,7 @@ const path = require('path');
 
 // Importar novas funcionalidades da Fase 1
 const CONSTANTS = require('./constants');
-const cache = require('./cache/manager');
+// const cache = require('./cache/manager'); // Disponível se necessário
 const validator = require('./validators/commandValidator');
 const errorHandler = require('./utils/errorHandler');
 const retryManager = require('./utils/retryManager');
