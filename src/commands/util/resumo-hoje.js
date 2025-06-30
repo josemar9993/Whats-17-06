@@ -14,7 +14,7 @@ function parseDate(str) {
 module.exports = {
   name: 'resumo-hoje',
   description: 'Envia o resumo das conversas de um dia ou intervalo para o administrador.',
-  async execute(msg, args) {
+  async execute(msg, args, client) {
     const { getAdminIds, isAdmin } = require('../../utils/admin');
     const adminIds = getAdminIds();
     const senderId = msg.author || msg.from;
@@ -66,7 +66,7 @@ module.exports = {
     const friendlyRange = friendlyStart === friendlyEnd ? friendlyStart : `${friendlyStart} até ${friendlyEnd}`;
 
     try {
-      await msg.client.sendMessage(adminContactId, `Gerando o resumo de ${friendlyRange}, por favor aguarde...`);
+      await client.sendMessage(adminContactId, `Gerando o resumo de ${friendlyRange}, por favor aguarde...`);
 
       let allMessages = [];
       for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
@@ -76,14 +76,14 @@ module.exports = {
       }
 
       if (!allMessages || allMessages.length === 0) {
-        await msg.client.sendMessage(adminContactId, `Nenhuma conversa encontrada para o período ${friendlyRange}.`);
+        await client.sendMessage(adminContactId, `Nenhuma conversa encontrada para o período ${friendlyRange}.`);
         return;
       }
 
       const summaryText = await createDailySummary(allMessages);
 
-      await msg.client.sendMessage(adminContactId, summaryText);
-      await msg.client.sendMessage(adminContactId, '✅ Resumo enviado.');
+      await client.sendMessage(adminContactId, summaryText);
+      await client.sendMessage(adminContactId, '✅ Resumo enviado.');
       logger.info(`Resumo do período ${friendlyRange} enviado para ${adminContactId} a pedido de ${msg.from}.`);
     } catch (error) {
       logger.error(`Erro no comando !resumo-hoje: ${error.message}`);
