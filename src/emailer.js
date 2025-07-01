@@ -35,15 +35,19 @@ async function sendEmail(mailDetails, client) {
     to: mailDetails.to || config.emailTo,
     subject: mailDetails.subject,
     text: mailDetails.text,
-    html: mailDetails.html, // Adiciona suporte a HTML
+    html: mailDetails.html // Adiciona suporte a HTML
   };
 
   try {
     await transporter.sendMail(mailOptions);
-    logger.info(`E-mail "${mailOptions.subject}" enviado com sucesso para ${mailOptions.to}!`);
+    logger.info(
+      `E-mail "${mailOptions.subject}" enviado com sucesso para ${mailOptions.to}!`
+    );
   } catch (error) {
     const errorMessage = error.message || error.toString();
-    logger.error(`Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`);
+    logger.error(
+      `Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`
+    );
 
     if (client) {
       try {
@@ -51,13 +55,23 @@ async function sendEmail(mailDetails, client) {
         const adminId = adminIds[0];
 
         if (adminId) {
-          await client.sendMessage(adminId, `⚠️ Falha ao enviar e-mail: ${errorMessage}`);
-          logger.info(`Notificação de falha enviada via WhatsApp para ${adminId}.`);
+          await client.sendMessage(
+            adminId,
+            `⚠️ Falha ao enviar e-mail: ${errorMessage}`
+          );
+          logger.info(
+            `Notificação de falha enviada via WhatsApp para ${adminId}.`
+          );
         } else {
-          logger.warn('Admin não definido para receber notificação de falha por WhatsApp.');
+          logger.warn(
+            'Admin não definido para receber notificação de falha por WhatsApp.'
+          );
         }
       } catch (notifyErr) {
-        logger.error('Erro ao enviar notificação de falha via WhatsApp:', notifyErr);
+        logger.error(
+          'Erro ao enviar notificação de falha via WhatsApp:',
+          notifyErr
+        );
       }
     }
 
@@ -66,5 +80,5 @@ async function sendEmail(mailDetails, client) {
 }
 
 module.exports = {
-  sendEmail,
+  sendEmail
 };

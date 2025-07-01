@@ -15,31 +15,25 @@ class CommandValidator {
           .messages({
             'string.min': 'O termo de busca deve ter pelo menos 2 caracteres',
             'string.max': 'O termo de busca deve ter no máximo 100 caracteres',
-            'string.pattern.base': 'O termo de busca contém caracteres inválidos',
+            'string.pattern.base':
+              'O termo de busca contém caracteres inválidos',
             'any.required': 'Termo de busca é obrigatório'
           })
       }),
-      
+
       'resumo-hoje': Joi.object({
-        date: Joi.date()
-          .iso()
-          .max('now')
-          .optional()
-          .messages({
-            'date.iso': 'Data deve estar no formato ISO (YYYY-MM-DD)',
-            'date.max': 'Data não pode ser futura'
-          })
+        date: Joi.date().iso().max('now').optional().messages({
+          'date.iso': 'Data deve estar no formato ISO (YYYY-MM-DD)',
+          'date.max': 'Data não pode ser futura'
+        })
       }),
-      
+
       'test-email': Joi.object({
-        email: Joi.string()
-          .email()
-          .optional()
-          .messages({
-            'string.email': 'Email deve ter formato válido'
-          })
+        email: Joi.string().email().optional().messages({
+          'string.email': 'Email deve ter formato válido'
+        })
       }),
-      
+
       logs: Joi.object({
         lines: Joi.number()
           .integer()
@@ -53,7 +47,7 @@ class CommandValidator {
           })
       })
     };
-    
+
     // Schema genérico para argumentos de comando
     this.genericSchema = Joi.object({
       args: Joi.array()
@@ -64,7 +58,7 @@ class CommandValidator {
         })
     });
   }
-  
+
   // Validar entrada básica de mensagem
   validateMessage(message) {
     const schema = Joi.object({
@@ -75,7 +69,7 @@ class CommandValidator {
           'string.max': `Mensagem muito longa. Máximo ${CONSTANTS.MAX_MESSAGE_LENGTH} caracteres`,
           'any.required': 'Corpo da mensagem é obrigatório'
         }),
-      
+
       from: Joi.string()
         .pattern(/^[0-9]+@[cs]\.us$/)
         .required()
@@ -83,32 +77,32 @@ class CommandValidator {
           'string.pattern.base': 'ID do remetente inválido'
         })
     });
-    
+
     return schema.validate({
       body: message.body,
       from: message.from
     });
   }
-  
+
   // Validar comando específico
   validateCommand(commandName, data) {
     try {
       const schema = this.schemas[commandName];
-      
+
       if (!schema) {
         // Para comandos sem schema específico, usa validação genérica
         return this.genericSchema.validate({ args: data });
       }
-      
+
       const result = schema.validate(data);
-      
+
       if (result.error) {
         logger.warn(`Validação falhou para comando ${commandName}:`, {
           error: result.error.message,
           data
         });
       }
-      
+
       return result;
     } catch (error) {
       logger.error('Erro durante validação:', error);
@@ -118,13 +112,13 @@ class CommandValidator {
       };
     }
   }
-  
+
   // Sanitizar entrada do usuário
   sanitizeInput(input) {
     if (typeof input !== 'string') {
       return input;
     }
-    
+
     return input
       .replace(/[<>]/g, '') // Remove tags HTML básicas
       .replace(/javascript:/gi, '') // Remove javascript:
@@ -132,7 +126,7 @@ class CommandValidator {
       .trim()
       .substring(0, CONSTANTS.MAX_MESSAGE_LENGTH);
   }
-  
+
   // Validar argumentos de busca
   validateSearchArgs(args) {
     if (!args || args.length === 0) {
@@ -141,53 +135,53 @@ class CommandValidator {
         value: null
       };
     }
-    
+
     const term = args.join(' ');
     return this.validateCommand('buscar', { term });
   }
-  
+
   // Validar se usuário pode executar comando
   validateUserPermission(userId, commandName, commandConfig = {}) {
     // Validação básica de rate limiting será feita em outro middleware
-    
+
     const validation = {
       allowed: true,
       reason: null
     };
-    
+
     // Verificar se comando existe
     if (!commandName) {
       validation.allowed = false;
       validation.reason = 'Comando não especificado';
       return validation;
     }
-    
+
     // Verificar tipo de comando
     if (commandConfig.adminOnly && !this.isAdmin(userId)) {
       validation.allowed = false;
       validation.reason = 'Comando restrito a administradores';
       return validation;
     }
-    
+
     return validation;
   }
-  
+
   // Helper para verificar se é admin (será integrado com o sistema existente)
   isAdmin(userId) {
     const { isAdmin } = require('../utils/admin');
     return isAdmin(userId);
   }
-  
+
   // Validar parâmetros de paginação
   validatePagination(page = 1, limit = 20) {
     const schema = Joi.object({
       page: Joi.number().integer().min(1).max(1000).default(1),
       limit: Joi.number().integer().min(1).max(100).default(20)
     });
-    
+
     return schema.validate({ page, limit });
   }
-  
+
   // Adicionar novo schema de validação
   addSchema(commandName, schema) {
     this.schemas[commandName] = schema;

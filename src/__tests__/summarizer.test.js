@@ -16,7 +16,12 @@ describe('summarizer', () => {
 
   test('generatePendingSummary identifica perguntas sem resposta', () => {
     const messages = [
-      { chatId: '123@c.us', senderName: 'Alice', body: 'Tudo bem?', fromMe: false },
+      {
+        chatId: '123@c.us',
+        senderName: 'Alice',
+        body: 'Tudo bem?',
+        fromMe: false
+      },
       { chatId: '123@c.us', senderName: 'Alice', body: 'Oi?', fromMe: false }
     ];
 

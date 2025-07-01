@@ -29,7 +29,9 @@ module.exports = {
       }
 
       if (!Array.isArray(chat.participants) || chat.participants.length === 0) {
-        logger.warn(`Metadados do grupo ${chat.name} não contêm participantes.`);
+        logger.warn(
+          `Metadados do grupo ${chat.name} não contêm participantes.`
+        );
         return;
       }
 

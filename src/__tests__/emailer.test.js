@@ -24,6 +24,8 @@ beforeEach(() => {
 
 describe('emailer', () => {
   test('envia email com nodemailer', async () => {
-    await expect(sendEmail({ subject: 'Assunto', text: 'corpo' })).resolves.not.toThrow();
+    await expect(
+      sendEmail({ subject: 'Assunto', text: 'corpo' })
+    ).resolves.not.toThrow();
   });
 });

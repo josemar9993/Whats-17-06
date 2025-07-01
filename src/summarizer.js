@@ -8,7 +8,15 @@ const removeAccents = require('remove-accents');
 const KEYWORD_THEMES = [
   {
     tema: 'Financeiro',
-    palavras: ['preço', 'cobrança', 'valor', 'pagar', 'orçamento', 'boleto', 'pix']
+    palavras: [
+      'preço',
+      'cobrança',
+      'valor',
+      'pagar',
+      'orçamento',
+      'boleto',
+      'pix'
+    ]
   },
   {
     tema: 'Suporte',
@@ -78,12 +86,16 @@ function analyzeChatMetrics(chat) {
     receivedMessages,
     totalMessages: chat.messages.length,
     sentimentLabel: getSentimentLabel(sentimentScore),
-    lastMessage: lastMessage ? `_${"\""}${lastMessage.body.substring(0, 50)}..."_` : '_Nenhuma mensagem_',
-    detectedThemes: detectedThemes.size > 0 ? [...detectedThemes].join(', ') : 'Nenhum tópico principal',
-    messages: chat.messages, // <-- Adicionado para manter acesso às mensagens
+    lastMessage: lastMessage
+      ? `_${'"'}${lastMessage.body.substring(0, 50)}..."_`
+      : '_Nenhuma mensagem_',
+    detectedThemes:
+      detectedThemes.size > 0
+        ? [...detectedThemes].join(', ')
+        : 'Nenhum tópico principal',
+    messages: chat.messages // <-- Adicionado para manter acesso às mensagens
   };
 }
-
 
 /**
  * Cria um resumo diário com base nos chats fornecidos.
@@ -103,12 +115,15 @@ async function createDailySummary(allMessages, periodLabel = null) {
     const chatId = message.chatId;
     if (!chats[chatId]) {
       const isGroup = chatId.endsWith('@g.us');
-      const chatName = message.senderName || message.contactName || chatId.replace(/@c\.us|@g\.us/, '');
+      const chatName =
+        message.senderName ||
+        message.contactName ||
+        chatId.replace(/@c\.us|@g\.us/, '');
       chats[chatId] = {
         chatId: chatId,
         name: chatName,
         isGroup,
-        messages: [],
+        messages: []
       };
     }
     chats[chatId].messages.push(message);
@@ -116,49 +131,151 @@ async function createDailySummary(allMessages, periodLabel = null) {
 
   // Análise e ordenação
   let analyzedChats = Object.values(chats).map(analyzeChatMetrics);
-  analyzedChats = analyzedChats.filter(chat => chat.contactName.toLowerCase() !== 'eu');
-  analyzedChats = analyzedChats.sort((a, b) => b.receivedMessages - a.receivedMessages);
+  analyzedChats = analyzedChats.filter(
+    (chat) => chat.contactName.toLowerCase() !== 'eu'
+  );
+  analyzedChats = analyzedChats.sort(
+    (a, b) => b.receivedMessages - a.receivedMessages
+  );
 
   // Agrupamento por tipo
-  const groups = analyzedChats.filter(c => c.chatId.endsWith('@g.us'));
-  const individuals = analyzedChats.filter(c => !c.chatId.endsWith('@g.us'));
+  const groups = analyzedChats.filter((c) => c.chatId.endsWith('@g.us'));
+  const individuals = analyzedChats.filter((c) => !c.chatId.endsWith('@g.us'));
 
   // Resumo do período
   const today = new Date().toLocaleDateString('pt-BR');
   const periodo = periodLabel ? periodLabel : today;
   let summary = `📊 *Resumo Diário de Atividades* | ${periodo} 📊\n\n`;
-  summary += `Hoje você interagiu em *${analyzedChats.length}* conversas distintas.\n`;
-  summary += '===================================\n\n';
 
-  // Resumo geral antes dos contatos
-  const totalSent = analyzedChats.reduce((sum, chat) => sum + chat.sentMessages, 0);
-  const totalReceived = analyzedChats.reduce((sum, chat) => sum + chat.receivedMessages, 0);
-  // Taxa de resposta geral
-  analyzedChats.forEach(chat => {
+  // Calcular estatísticas gerais
+  const totalSent = analyzedChats.reduce(
+    (sum, chat) => sum + chat.sentMessages,
+    0
+  );
+  const totalReceived = analyzedChats.reduce(
+    (sum, chat) => sum + chat.receivedMessages,
+    0
+  );
+
+  // Calcular taxa de resposta e temas
+  analyzedChats.forEach((chat) => {
     totalRecebidas += chat.receivedMessages;
     totalRespondidas += Math.min(chat.sentMessages, chat.receivedMessages);
     // Contabiliza temas para ranking
-    chat.detectedThemes.split(',').forEach(theme => {
+    chat.detectedThemes.split(',').forEach((theme) => {
       const t = theme.trim();
       if (t && t !== 'Nenhum tópico principal') {
         themeCount[t] = (themeCount[t] || 0) + 1;
       }
     });
   });
-  const taxaResposta = totalRecebidas > 0 ? Math.round((totalRespondidas / totalRecebidas) * 100) : 100;
+  const taxaResposta =
+    totalRecebidas > 0
+      ? Math.round((totalRespondidas / totalRecebidas) * 100)
+      : 100;
 
-  summary += '===================================\n';
-  summary += `*Resumo Geral do Dia:*\n`;
-  summary += `  - ↗️ Total Enviadas: *${totalSent}*\n`;
-  summary += `  - ↙️ Total Recebidas: *${totalReceived}*\n`;
-  summary += `  - 💬 Total de Conversas: *${analyzedChats.length}*\n`;
-  summary += `  - 📈 Taxa de Resposta: *${taxaResposta}%*\n\n`;
-  summary += `🤖 _Este é um resumo automático._\n\n`;
+  // Identificar contatos ignorados
+  const ignorados = analyzedChats.filter(
+    (c) => c.sentMessages === 0 && c.receivedMessages > 0
+  );
+
+  // 1. ESTATÍSTICAS GERAIS
+  summary += `*📈 VISÃO GERAL DO DIA*\n`;
+  summary += `┌─────────────────────────────────────┐\n`;
+  summary += `│ 💬 Conversas Ativas: *${analyzedChats.length}*\n`;
+  summary += `│ ↗️ Mensagens Enviadas: *${totalSent}*\n`;
+  summary += `│ ↙️ Mensagens Recebidas: *${totalReceived}*\n`;
+  summary += `│ 📈 Taxa de Resposta: *${taxaResposta}%*\n`;
+  summary += `└─────────────────────────────────────┘\n\n`;
+
+  // 2. ALERTAS IMPORTANTES
+  const alertas = [];
+  if (ignorados.length > 0) {
+    alertas.push(
+      `⚠️ *${ignorados.length} contato${ignorados.length > 1 ? 's' : ''} aguardando resposta*`
+    );
+  }
+  if (taxaResposta < 50) {
+    alertas.push(`� *Taxa de resposta baixa (${taxaResposta}%)*`);
+  }
+  if (totalReceived > totalSent * 2) {
+    alertas.push(`📥 *Você recebeu muito mais mensagens do que enviou*`);
+  }
+  const contatosAtivos = analyzedChats.filter(
+    (c) => c.sentMessages > 0 && c.receivedMessages > 0
+  ).length;
+  if (contatosAtivos < analyzedChats.length / 2) {
+    alertas.push(
+      `🔄 *Poucas conversas bidirecionais (${contatosAtivos}/${analyzedChats.length})*`
+    );
+  }
+
+  if (alertas.length > 0) {
+    summary += `*🚨 ALERTAS IMPORTANTES*\n`;
+    alertas.forEach((alerta) => (summary += `${alerta}\n`));
+    summary += `\n`;
+  }
+
+  // 3. RANKING DE TÓPICOS
+  const temasOrdenados = Object.entries(themeCount).sort((a, b) => b[1] - a[1]);
+  if (temasOrdenados.length > 0) {
+    summary += `*� TÓPICOS MAIS DISCUTIDOS*\n`;
+    temasOrdenados.slice(0, 5).forEach(([tema, count], idx) => {
+      const emoji = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][idx] || '📌';
+      summary += `${emoji} ${tema}: *${count} menção${count > 1 ? 'ões' : ''}*\n`;
+    });
+    summary += `\n`;
+  }
+
+  // 4. CONTATOS PRIORITÁRIOS (que precisam de resposta)
+  if (ignorados.length > 0) {
+    summary += `*⚠️ CONTATOS AGUARDANDO RESPOSTA*\n`;
+    ignorados.forEach((chat, idx) => {
+      let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
+      if (lastMsg.length > 60) lastMsg = lastMsg.substring(0, 60) + '...';
+      let lastMsgTime = '';
+      if (chat.messages && chat.messages.length > 0) {
+        const last = chat.messages[chat.messages.length - 1];
+        if (last.timestamp) {
+          const date = new Date(last.timestamp * 1000);
+          lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
+        }
+      }
+      summary += `${idx + 1}. 🔔 *${chat.contactName}*\n`;
+      summary += `   📥 ${chat.receivedMessages} mensagem${chat.receivedMessages > 1 ? 's' : ''} não respondida${chat.receivedMessages > 1 ? 's' : ''}\n`;
+      summary += `   💬 "${lastMsg}"${lastMsgTime}\n`;
+      summary += `   🎯 Tópico: ${chat.detectedThemes}\n`;
+      summary += `   😊 Sentimento: ${chat.sentimentLabel}\n\n`;
+    });
+  }
+
+  // 5. CONVERSAS MAIS ATIVAS
+  const conversasAtivas = analyzedChats
+    .filter((c) => c.sentMessages > 0 || c.receivedMessages > 5)
+    .slice(0, 5);
+  if (conversasAtivas.length > 0) {
+    summary += `*🔥 CONVERSAS MAIS ATIVAS*\n`;
+    conversasAtivas.forEach((chat, idx) => {
+      const totalMsgs = chat.sentMessages + chat.receivedMessages;
+      const status =
+        chat.sentMessages === 0
+          ? '⚠️'
+          : chat.sentMessages > chat.receivedMessages
+            ? '📤'
+            : '📥';
+      summary += `${idx + 1}. ${status} *${chat.contactName}*: ${totalMsgs} mensagens\n`;
+      summary += `   (${chat.sentMessages} enviadas, ${chat.receivedMessages} recebidas)\n`;
+    });
+    summary += `\n`;
+  }
+
+  summary += `*📋 DETALHAMENTO COMPLETO*\n`;
+  summary += `════════════════════════════════════\n\n`;
 
   // Contatos individuais
   if (individuals.length > 0) {
     summary += '*Conversas Individuais:*\n';
-    individuals.forEach(chat => {
+    individuals.forEach((chat) => {
       let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
       if (lastMsg.length > 30) lastMsg = lastMsg.substring(0, 30) + '...';
       let lastMsgTime = '';
@@ -169,7 +286,8 @@ async function createDailySummary(allMessages, periodLabel = null) {
           lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
         }
       }
-      const semResposta = chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
+      const semResposta =
+        chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
       summary += '-----------------------------------\n';
       summary += `👤 Contato: ${chat.contactName}${semResposta}\n`;
       summary += `📤 Enviadas: ${chat.sentMessages}\n`;
@@ -184,7 +302,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
   // Grupos
   if (groups.length > 0) {
     summary += '*Conversas em Grupo:*\n';
-    groups.forEach(chat => {
+    groups.forEach((chat) => {
       let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
       if (lastMsg.length > 30) lastMsg = lastMsg.substring(0, 30) + '...';
       let lastMsgTime = '';
@@ -195,7 +313,8 @@ async function createDailySummary(allMessages, periodLabel = null) {
           lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
         }
       }
-      const semResposta = chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
+      const semResposta =
+        chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
       summary += '-----------------------------------\n';
       summary += `👥 Grupo: ${chat.contactName}${semResposta}\n`;
       summary += `📤 Enviadas: ${chat.sentMessages}\n`;
@@ -207,25 +326,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
     summary += '\n';
   }
 
-  // Contatos mais ignorados
-  const ignorados = analyzedChats.filter(c => c.sentMessages === 0 && c.receivedMessages > 0);
-  if (ignorados.length > 0) {
-    summary += '*Contatos mais ignorados (sem resposta):*\n';
-    ignorados.forEach(chat => {
-      summary += `- ${chat.contactName} (${chat.receivedMessages} recebidas)\n`;
-    });
-    summary += '\n';
-  }
-
-  // Ranking de tópicos
-  const temasOrdenados = Object.entries(themeCount).sort((a, b) => b[1] - a[1]);
-  if (temasOrdenados.length > 0) {
-    summary += '*Principais tópicos do dia:*\n';
-    temasOrdenados.forEach(([tema, count], idx) => {
-      summary += `${idx + 1}. ${tema} (${count})\n`;
-    });
-  }
-
+  summary += `🤖 _Este é um resumo automático._ ⏰ ${new Date().toLocaleTimeString('pt-BR')}\n`;
   summary += '\n-----------------------------------';
   return summary.trim();
 }
@@ -249,7 +350,7 @@ function generatePendingSummary(allMessages) {
       chats[chatId] = {
         chatId,
         name: message.senderName || chatId.replace('@c.us', ''),
-        messages: [],
+        messages: []
       };
     }
     chats[chatId].messages.push(message);
@@ -285,5 +386,5 @@ function generatePendingSummary(allMessages) {
 
 module.exports = {
   createDailySummary,
-  generatePendingSummary,
+  generatePendingSummary
 };

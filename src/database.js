@@ -25,7 +25,9 @@ db.serialize(() => {
     )
   `);
 
-  db.run(`CREATE INDEX IF NOT EXISTS idx_isoTimestamp ON messages (isoTimestamp)`);
+  db.run(
+    `CREATE INDEX IF NOT EXISTS idx_isoTimestamp ON messages (isoTimestamp)`
+  );
 });
 
 function addMessage(msg) {
@@ -75,7 +77,7 @@ async function addMessageFromWhatsapp(msg) {
     senderName: senderName,
     type: msg.type,
     body: msg.body,
-    fromMe: msg.fromMe,
+    fromMe: msg.fromMe
   };
 
   return addMessage(messageData);
@@ -100,7 +102,7 @@ function getMessagesByDate(dateStr) {
         senderName: r.senderName,
         type: r.type,
         body: r.body,
-        fromMe: r.fromMe === 1,
+        fromMe: r.fromMe === 1
       }));
       resolve(messages);
     });
@@ -125,7 +127,7 @@ function searchMessages(term) {
         senderName: r.senderName,
         type: r.type,
         body: r.body,
-        fromMe: r.fromMe === 1,
+        fromMe: r.fromMe === 1
       }));
       resolve(messages);
     });
@@ -145,7 +147,7 @@ function getAllMessages() {
         senderName: r.senderName,
         type: r.type,
         body: r.body,
-        fromMe: r.fromMe === 1,
+        fromMe: r.fromMe === 1
       }));
       resolve(messages);
     });
@@ -157,5 +159,5 @@ module.exports = {
   addMessageFromWhatsapp,
   getMessagesByDate,
   searchMessages,
-  getAllMessages,
+  getAllMessages
 };

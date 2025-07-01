@@ -10,7 +10,7 @@ module.exports = {
       .join('\n');
     await message.reply(
       `🤖 Versão do bot: *${pkg.version}*\n` +
-      `Principais dependências:\n${deps}`
+        `Principais dependências:\n${deps}`
     );
   }
 };

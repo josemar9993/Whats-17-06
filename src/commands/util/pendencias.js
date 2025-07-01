@@ -43,7 +43,10 @@ module.exports = {
         message.from,
         `📋 *Resumo de Pendências de Hoje:*\n${resumoPendencias}`
       );
-      await client.sendMessage(message.from, '✅ Resumo de pendências enviado.');
+      await client.sendMessage(
+        message.from,
+        '✅ Resumo de pendências enviado.'
+      );
     } catch (error) {
       logger.error('Erro ao executar o comando !pendencias:', error);
       await client.sendMessage(
