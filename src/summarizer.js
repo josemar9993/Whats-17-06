@@ -7,32 +7,83 @@ const removeAccents = require('remove-accents');
 
 const KEYWORD_THEMES = [
   {
-    tema: 'Financeiro',
+    tema: '💰 Financeiro',
+    prioridade: 'ALTA',
+    icon: '💰',
     palavras: [
-      'preço',
-      'cobrança',
-      'valor',
-      'pagar',
-      'orçamento',
-      'boleto',
-      'pix'
+      'preço', 'cobrança', 'valor', 'pagar', 'orçamento', 'boleto', 'pix',
+      'faturamento', 'receita', 'lucro', 'investimento', 'custo', 'desconto',
+      'proposta', 'contrato', 'negociação', 'comissão', 'prazo', 'vencimento'
     ]
   },
   {
-    tema: 'Suporte',
-    palavras: ['erro', 'problema', 'ajuda', 'suporte', 'bug', 'falha']
+    tema: '🚨 Suporte Técnico',
+    prioridade: 'CRÍTICA',
+    icon: '🚨',
+    palavras: [
+      'erro', 'problema', 'ajuda', 'suporte', 'bug', 'falha', 'down',
+      'indisponível', 'lento', 'travou', 'não funciona', 'urgente',
+      'crítico', 'parado', 'sistema', 'servidor', 'backup'
+    ]
   },
   {
-    tema: 'Agendamento',
-    palavras: ['horário', 'marcar', 'agenda', 'amanhã', 'reunião', 'encontro']
+    tema: '🤝 Vendas/Negócios',
+    prioridade: 'ALTA',
+    icon: '🤝',
+    palavras: [
+      'cliente', 'lead', 'prospect', 'venda', 'negócio', 'oportunidade',
+      'proposta comercial', 'demonstração', 'trial', 'teste', 'contrato',
+      'fechamento', 'pipeline', 'follow-up', 'interessado'
+    ]
   },
   {
-    tema: 'Pessoal',
-    palavras: ['família', 'amor', 'parabéns', 'saudade', 'abraço', 'feliz']
+    tema: '📅 Agendamentos',
+    prioridade: 'MÉDIA',
+    icon: '📅',
+    palavras: [
+      'horário', 'marcar', 'agenda', 'amanhã', 'reunião', 'encontro',
+      'meeting', 'call', 'apresentação', 'demo', 'visita', 'disponibilidade'
+    ]
   },
   {
-    tema: 'Mídia',
-    palavras: ['foto', 'imagem', 'pdf', 'documento', 'áudio', 'vídeo']
+    tema: '⚙️ Desenvolvimento',
+    prioridade: 'ALTA',
+    icon: '⚙️',
+    palavras: [
+      'desenvolvimento', 'feature', 'funcionalidade', 'código', 'deploy',
+      'release', 'versão', 'atualização', 'melhoria', 'implementação',
+      'integração', 'api', 'database', 'performance'
+    ]
+  },
+  {
+    tema: '👥 Recursos Humanos',
+    prioridade: 'MÉDIA',
+    icon: '👥',
+    palavras: [
+      'contratação', 'vaga', 'candidato', 'entrevista', 'equipe', 'time',
+      'funcionário', 'colaborador', 'treinamento', 'capacitação', 'férias'
+    ]
+  },
+  {
+    tema: '📊 Relatórios/Dados',
+    prioridade: 'MÉDIA',
+    icon: '📊',
+    palavras: [
+      'relatório', 'dashboard', 'métricas', 'kpi', 'dados', 'análise',
+      'performance', 'resultado', 'estatística', 'gráfico', 'indicador'
+    ]
+  },
+  {
+    tema: '📱 Mídia/Documentos',
+    prioridade: 'BAIXA',
+    icon: '📱',
+    palavras: ['foto', 'imagem', 'pdf', 'documento', 'áudio', 'vídeo', 'arquivo']
+  },
+  {
+    tema: '😊 Pessoal',
+    prioridade: 'BAIXA',
+    icon: '😊',
+    palavras: ['família', 'amor', 'parabéns', 'saudade', 'abraço', 'feliz', 'aniversário']
   }
 ];
 
@@ -52,48 +103,94 @@ function analyzeChatMetrics(chat) {
   let receivedMessages = 0;
   let sentimentScore = 0;
   let lastMessage = null;
-  const detectedThemes = new Set();
+  let firstMessage = null;
+  const detectedThemes = new Map();
+  const hourlyActivity = new Array(24).fill(0);
+  let avgResponseTime = 0;
+  let totalResponseTimes = 0;
+  let responseCount = 0;
+  
   // Simplifica a obtenção do nome do contato, priorizando o nome do chat.
-  const contactName = chat.name || chat.chatId.replace('@c.us', '');
+  const contactName = chat.name || chat.chatId.replace('@c.us', '').replace(/[^\w\s]/gi, '');
 
-  chat.messages.forEach((message) => {
+  // Ordena mensagens por timestamp
+  const sortedMessages = chat.messages.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+  
+  sortedMessages.forEach((message, index) => {
     const text = message.body || '';
     const normalizedText = removeAccents(text.toLowerCase());
-
+    const messageDate = new Date((message.timestamp || Date.now() / 1000) * 1000);
+    const hour = messageDate.getHours();
+    
+    hourlyActivity[hour]++;
     sentimentScore += sentiment.analyze(text).score;
 
     if (message.fromMe) {
       sentMessages++;
+      // Calcula tempo de resposta se for resposta a uma mensagem recebida
+      if (index > 0 && !sortedMessages[index - 1].fromMe) {
+        const responseTime = (message.timestamp - sortedMessages[index - 1].timestamp) / 60; // em minutos
+        if (responseTime < 1440) { // só considera se for menos de 24h
+          totalResponseTimes += responseTime;
+          responseCount++;
+        }
+      }
     } else {
       receivedMessages++;
     }
+    
+    if (!firstMessage) firstMessage = message;
     lastMessage = message;
 
+    // Análise de temas com prioridade
     for (const theme of KEYWORD_THEMES) {
       for (const keyword of theme.palavras) {
         if (normalizedText.includes(keyword)) {
-          detectedThemes.add(theme.tema);
+          const currentCount = detectedThemes.get(theme.tema) || 0;
+          detectedThemes.set(theme.tema, currentCount + 1);
           break;
         }
       }
     }
   });
 
+  avgResponseTime = responseCount > 0 ? Math.round(totalResponseTimes / responseCount) : 0;
+  
+  // Identifica pico de atividade
+  const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity));
+  
+  // Classifica urgência baseado em temas críticos
+  const criticalThemes = [...detectedThemes.keys()].filter(theme => 
+    KEYWORD_THEMES.find(t => t.tema === theme)?.prioridade === 'CRÍTICA'
+  );
+  
+  const urgencyLevel = criticalThemes.length > 0 ? 'CRÍTICA' : 
+                      receivedMessages > sentMessages && receivedMessages > 3 ? 'ALTA' :
+                      receivedMessages > sentMessages ? 'MÉDIA' : 'BAIXA';
+
   return {
-    chatId: chat.chatId, // <-- Adicionado para corrigir o erro
+    chatId: chat.chatId,
     contactName,
     sentMessages,
     receivedMessages,
     totalMessages: chat.messages.length,
     sentimentLabel: getSentimentLabel(sentimentScore),
+    sentimentScore: Math.round(sentimentScore * 100) / 100,
     lastMessage: lastMessage
-      ? `_${'"'}${lastMessage.body.substring(0, 50)}..."_`
-      : '_Nenhuma mensagem_',
-    detectedThemes:
-      detectedThemes.size > 0
-        ? [...detectedThemes].join(', ')
-        : 'Nenhum tópico principal',
-    messages: chat.messages // <-- Adicionado para manter acesso às mensagens
+      ? `${lastMessage.body.substring(0, 50)}${lastMessage.body.length > 50 ? '...' : ''}`
+      : 'Nenhuma mensagem',
+    lastMessageTime: lastMessage ? new Date((lastMessage.timestamp || 0) * 1000) : null,
+    firstMessageTime: firstMessage ? new Date((firstMessage.timestamp || 0) * 1000) : null,
+    detectedThemes: detectedThemes.size > 0 ? detectedThemes : new Map([['Nenhum tópico principal', 1]]),
+    themesText: detectedThemes.size > 0 
+      ? [...detectedThemes.entries()].map(([theme, count]) => `${theme} (${count})`).join(', ')
+      : 'Nenhum tópico principal',
+    avgResponseTime,
+    peakHour,
+    urgencyLevel,
+    isUnanswered: receivedMessages > 0 && sentMessages === 0,
+    responseRate: receivedMessages > 0 ? Math.round((Math.min(sentMessages, receivedMessages) / receivedMessages) * 100) : 0,
+    messages: chat.messages
   };
 }
 
@@ -104,21 +201,25 @@ function analyzeChatMetrics(chat) {
  */
 async function createDailySummary(allMessages, periodLabel = null) {
   if (!allMessages || allMessages.length === 0) {
-    return 'Nenhuma mensagem registrada para resumir.';
+    return '📊 *RELATÓRIO EMPRESARIAL DIÁRIO*\n\n❌ Nenhuma atividade registrada no período.';
   }
 
   const chats = {};
-  const themeCount = {};
-  let totalRespondidas = 0;
-  let totalRecebidas = 0;
+  const themeCount = new Map();
+  const hourlyActivity = new Array(24).fill(0);
+  let totalResponseTime = 0;
+  let responseCount = 0;
+  
+  // Agrupa mensagens por chat
   for (const message of allMessages) {
     const chatId = message.chatId;
+    const messageDate = new Date((message.timestamp || Date.now() / 1000) * 1000);
+    const hour = messageDate.getHours();
+    hourlyActivity[hour]++;
+    
     if (!chats[chatId]) {
       const isGroup = chatId.endsWith('@g.us');
-      const chatName =
-        message.senderName ||
-        message.contactName ||
-        chatId.replace(/@c\.us|@g\.us/, '');
+      const chatName = message.senderName || message.contactName || chatId.replace(/@c\.us|@g\.us/, '');
       chats[chatId] = {
         chatId: chatId,
         name: chatName,
@@ -129,206 +230,167 @@ async function createDailySummary(allMessages, periodLabel = null) {
     chats[chatId].messages.push(message);
   }
 
-  // Análise e ordenação
+  // Análise detalhada dos chats
   let analyzedChats = Object.values(chats).map(analyzeChatMetrics);
-  analyzedChats = analyzedChats.filter(
-    (chat) => chat.contactName.toLowerCase() !== 'eu'
-  );
-  analyzedChats = analyzedChats.sort(
-    (a, b) => b.receivedMessages - a.receivedMessages
+  analyzedChats = analyzedChats.filter(chat => 
+    chat.contactName.toLowerCase() !== 'eu' && 
+    chat.contactName.toLowerCase() !== 'bot whts'
   );
 
-  // Agrupamento por tipo
-  const groups = analyzedChats.filter((c) => c.chatId.endsWith('@g.us'));
-  const individuals = analyzedChats.filter((c) => !c.chatId.endsWith('@g.us'));
-
-  // Resumo do período
-  const today = new Date().toLocaleDateString('pt-BR');
-  const periodo = periodLabel ? periodLabel : today;
-  let summary = `📊 *Resumo Diário de Atividades* | ${periodo} 📊\n\n`;
-
-  // Calcular estatísticas gerais
-  const totalSent = analyzedChats.reduce(
-    (sum, chat) => sum + chat.sentMessages,
-    0
-  );
-  const totalReceived = analyzedChats.reduce(
-    (sum, chat) => sum + chat.receivedMessages,
-    0
-  );
-
-  // Calcular taxa de resposta e temas
-  analyzedChats.forEach((chat) => {
-    totalRecebidas += chat.receivedMessages;
-    totalRespondidas += Math.min(chat.sentMessages, chat.receivedMessages);
-    // Contabiliza temas para ranking
-    chat.detectedThemes.split(',').forEach((theme) => {
-      const t = theme.trim();
-      if (t && t !== 'Nenhum tópico principal') {
-        themeCount[t] = (themeCount[t] || 0) + 1;
-      }
-    });
+  // Calcula métricas gerais
+  const totalSent = analyzedChats.reduce((sum, chat) => sum + chat.sentMessages, 0);
+  const totalReceived = analyzedChats.reduce((sum, chat) => sum + chat.receivedMessages, 0);
+  const totalConversations = analyzedChats.length;
+  
+  // Contabiliza temas e calcula tempo médio de resposta
+  analyzedChats.forEach(chat => {
+    if (chat.avgResponseTime > 0) {
+      totalResponseTime += chat.avgResponseTime;
+      responseCount++;
+    }
+    
+    for (const [theme, count] of chat.detectedThemes) {
+      themeCount.set(theme, (themeCount.get(theme) || 0) + count);
+    }
   });
-  const taxaResposta =
-    totalRecebidas > 0
-      ? Math.round((totalRespondidas / totalRecebidas) * 100)
-      : 100;
 
-  // Identificar contatos ignorados
-  const ignorados = analyzedChats.filter(
-    (c) => c.sentMessages === 0 && c.receivedMessages > 0
-  );
+  const avgResponseTime = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : 0;
+  const peakHour = hourlyActivity.indexOf(Math.max(...hourlyActivity));
+  
+  // Identifica contatos críticos
+  const criticalContacts = analyzedChats.filter(chat => chat.urgencyLevel === 'CRÍTICA');
+  const unansweredContacts = analyzedChats.filter(chat => chat.isUnanswered);
+  const slowResponseContacts = analyzedChats.filter(chat => chat.avgResponseTime > 60);
+  
+  // Ordena por prioridade
+  analyzedChats.sort((a, b) => {
+    const priorities = {'CRÍTICA': 4, 'ALTA': 3, 'MÉDIA': 2, 'BAIXA': 1};
+    return (priorities[b.urgencyLevel] || 0) - (priorities[a.urgencyLevel] || 0);
+  });
 
-  // 1. ESTATÍSTICAS GERAIS
-  summary += `*📈 VISÃO GERAL DO DIA*\n`;
-  summary += `┌─────────────────────────────────────┐\n`;
-  summary += `│ 💬 Conversas Ativas: *${analyzedChats.length}*\n`;
-  summary += `│ ↗️ Mensagens Enviadas: *${totalSent}*\n`;
-  summary += `│ ↙️ Mensagens Recebidas: *${totalReceived}*\n`;
-  summary += `│ 📈 Taxa de Resposta: *${taxaResposta}%*\n`;
-  summary += `└─────────────────────────────────────┘\n\n`;
+  // Construção do relatório
+  const today = new Date().toLocaleDateString('pt-BR');
+  const periodo = periodLabel || today;
+  const currentTime = new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  
+  let summary = `
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
+┃  � **RELATÓRIO EMPRESARIAL DIÁRIO**           ┃
+┃  🗓️ **${periodo}** | ⏰ **${currentTime}**                    ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
-  // 2. ALERTAS IMPORTANTES
-  const alertas = [];
-  if (ignorados.length > 0) {
-    alertas.push(
-      `⚠️ *${ignorados.length} contato${ignorados.length > 1 ? 's' : ''} aguardando resposta*`
-    );
-  }
-  if (taxaResposta < 50) {
-    alertas.push(`� *Taxa de resposta baixa (${taxaResposta}%)*`);
-  }
-  if (totalReceived > totalSent * 2) {
-    alertas.push(`📥 *Você recebeu muito mais mensagens do que enviou*`);
-  }
-  const contatosAtivos = analyzedChats.filter(
-    (c) => c.sentMessages > 0 && c.receivedMessages > 0
-  ).length;
-  if (contatosAtivos < analyzedChats.length / 2) {
-    alertas.push(
-      `🔄 *Poucas conversas bidirecionais (${contatosAtivos}/${analyzedChats.length})*`
-    );
-  }
+🎯 **RESUMO EXECUTIVO**
+═══════════════════════════════════════════════════
+�💬 **Conversas Ativas:** ${totalConversations}
+📨 **Mensagens Enviadas:** ${totalSent}
+📥 **Mensagens Recebidas:** ${totalReceived}
+📈 **Taxa de Resposta Geral:** ${totalReceived > 0 ? Math.round((Math.min(totalSent, totalReceived) / totalReceived) * 100) : 100}%
+⏱️ **Tempo Médio de Resposta:** ${avgResponseTime > 0 ? `${avgResponseTime} min` : 'N/A'}
+🕐 **Pico de Atividade:** ${peakHour}:00h
+`;
 
-  if (alertas.length > 0) {
-    summary += `*🚨 ALERTAS IMPORTANTES*\n`;
-    alertas.forEach((alerta) => (summary += `${alerta}\n`));
-    summary += `\n`;
+  // Alertas críticos
+  const alerts = [];
+  if (criticalContacts.length > 0) {
+    alerts.push(`🚨 **${criticalContacts.length} CONTATO(S) CRÍTICO(S)**`);
   }
-
-  // 3. RANKING DE TÓPICOS
-  const temasOrdenados = Object.entries(themeCount).sort((a, b) => b[1] - a[1]);
-  if (temasOrdenados.length > 0) {
-    summary += `*� TÓPICOS MAIS DISCUTIDOS*\n`;
-    temasOrdenados.slice(0, 5).forEach(([tema, count], idx) => {
-      const emoji = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'][idx] || '📌';
-      summary += `${emoji} ${tema}: *${count} menção${count > 1 ? 'ões' : ''}*\n`;
-    });
-    summary += `\n`;
+  if (unansweredContacts.length > 0) {
+    alerts.push(`⚠️ **${unansweredContacts.length} CONTATO(S) SEM RESPOSTA**`);
+  }
+  if (slowResponseContacts.length > 0) {
+    alerts.push(`� **${slowResponseContacts.length} RESPOSTA(S) LENTA(S) (>1h)**`);
+  }
+  if (totalReceived > totalSent * 1.5) {
+    alerts.push(`� **SOBRECARGA: Recebendo ${Math.round(totalReceived/totalSent)}x mais mensagens**`);
   }
 
-  // 4. CONTATOS PRIORITÁRIOS (que precisam de resposta)
-  if (ignorados.length > 0) {
-    summary += `*⚠️ CONTATOS AGUARDANDO RESPOSTA*\n`;
-    ignorados.forEach((chat, idx) => {
-      let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
-      if (lastMsg.length > 60) lastMsg = lastMsg.substring(0, 60) + '...';
-      let lastMsgTime = '';
-      if (chat.messages && chat.messages.length > 0) {
-        const last = chat.messages[chat.messages.length - 1];
-        if (last.timestamp) {
-          const date = new Date(last.timestamp * 1000);
-          lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
-        }
-      }
-      summary += `${idx + 1}. 🔔 *${chat.contactName}*\n`;
-      summary += `   📥 ${chat.receivedMessages} mensagem${chat.receivedMessages > 1 ? 's' : ''} não respondida${chat.receivedMessages > 1 ? 's' : ''}\n`;
-      summary += `   💬 "${lastMsg}"${lastMsgTime}\n`;
-      summary += `   🎯 Tópico: ${chat.detectedThemes}\n`;
-      summary += `   😊 Sentimento: ${chat.sentimentLabel}\n\n`;
-    });
+  if (alerts.length > 0) {
+    summary += `\n🚨 **ALERTAS CRÍTICOS**\n`;
+    summary += `═══════════════════════════════════════════════════\n`;
+    alerts.forEach(alert => summary += `${alert}\n`);
   }
 
-  // 5. CONVERSAS MAIS ATIVAS
-  const conversasAtivas = analyzedChats
-    .filter((c) => c.sentMessages > 0 || c.receivedMessages > 5)
+  // Top temas empresariais
+  const businessThemes = [...themeCount.entries()]
+    .filter(([theme]) => theme !== 'Nenhum tópico principal')
+    .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
-  if (conversasAtivas.length > 0) {
-    summary += `*🔥 CONVERSAS MAIS ATIVAS*\n`;
-    conversasAtivas.forEach((chat, idx) => {
-      const totalMsgs = chat.sentMessages + chat.receivedMessages;
-      const status =
-        chat.sentMessages === 0
-          ? '⚠️'
-          : chat.sentMessages > chat.receivedMessages
-            ? '📤'
-            : '📥';
-      summary += `${idx + 1}. ${status} *${chat.contactName}*: ${totalMsgs} mensagens\n`;
-      summary += `   (${chat.sentMessages} enviadas, ${chat.receivedMessages} recebidas)\n`;
+
+  if (businessThemes.length > 0) {
+    summary += `\n📊 **TÓPICOS EMPRESARIAIS**\n`;
+    summary += `═══════════════════════════════════════════════════\n`;
+    businessThemes.forEach(([theme, count], idx) => {
+      const priority = KEYWORD_THEMES.find(t => t.tema === theme)?.prioridade || 'MÉDIA';
+      const priorityEmoji = priority === 'CRÍTICA' ? '🔴' : priority === 'ALTA' ? '🟠' : priority === 'MÉDIA' ? '🟡' : '�';
+      summary += `${idx + 1}. ${priorityEmoji} ${theme}: **${count} menção${count > 1 ? 'ões' : ''}**\n`;
     });
-    summary += `\n`;
   }
 
-  summary += `*📋 DETALHAMENTO COMPLETO*\n`;
-  summary += `════════════════════════════════════\n\n`;
-
-  // Contatos individuais
-  if (individuals.length > 0) {
-    summary += '*Conversas Individuais:*\n';
-    individuals.forEach((chat) => {
-      let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
-      if (lastMsg.length > 30) lastMsg = lastMsg.substring(0, 30) + '...';
-      let lastMsgTime = '';
-      if (chat.messages && chat.messages.length > 0) {
-        const last = chat.messages[chat.messages.length - 1];
-        if (last.timestamp) {
-          const date = new Date(last.timestamp * 1000);
-          lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
-        }
-      }
-      const semResposta =
-        chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
-      summary += '-----------------------------------\n';
-      summary += `👤 Contato: ${chat.contactName}${semResposta}\n`;
-      summary += `📤 Enviadas: ${chat.sentMessages}\n`;
-      summary += `📥 Recebidas: ${chat.receivedMessages}\n`;
-      summary += `🙂 Sentimento: ${chat.sentimentLabel}\n`;
-      summary += `📌 Tópicos: ${chat.detectedThemes}\n`;
-      summary += `💬 Última Mensagem: "${lastMsg}"${lastMsgTime}\n`;
+  // Contatos prioritários que precisam de atenção
+  if (criticalContacts.length > 0 || unansweredContacts.length > 0) {
+    summary += `\n🎯 **AÇÃO NECESSÁRIA - PRIORIDADE**\n`;
+    summary += `═══════════════════════════════════════════════════\n`;
+    
+    const priorityContacts = [...criticalContacts, ...unansweredContacts.filter(c => !criticalContacts.includes(c))];
+    
+    priorityContacts.slice(0, 8).forEach((chat, idx) => {
+      const urgencyEmoji = chat.urgencyLevel === 'CRÍTICA' ? '🔴' : '🟠';
+      const timeAgo = chat.lastMessageTime ? getTimeAgo(chat.lastMessageTime) : '';
+      summary += `${idx + 1}. ${urgencyEmoji} **${chat.contactName}**\n`;
+      summary += `   📥 ${chat.receivedMessages} msg | 📤 ${chat.sentMessages} resp | ⏰ ${timeAgo}\n`;
+      summary += `   💬 "${chat.lastMessage}"\n`;
+      summary += `   �️ ${chat.themesText}\n`;
+      summary += `   😊 ${chat.sentimentLabel}\n\n`;
     });
-    summary += '\n';
   }
 
-  // Grupos
-  if (groups.length > 0) {
-    summary += '*Conversas em Grupo:*\n';
-    groups.forEach((chat) => {
-      let lastMsg = chat.lastMessage.replace(/^_"|"_$/g, '');
-      if (lastMsg.length > 30) lastMsg = lastMsg.substring(0, 30) + '...';
-      let lastMsgTime = '';
-      if (chat.messages && chat.messages.length > 0) {
-        const last = chat.messages[chat.messages.length - 1];
-        if (last.timestamp) {
-          const date = new Date(last.timestamp * 1000);
-          lastMsgTime = ` (${date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })})`;
-        }
-      }
-      const semResposta =
-        chat.sentMessages === 0 && chat.receivedMessages > 0 ? ' ⚠️' : '';
-      summary += '-----------------------------------\n';
-      summary += `👥 Grupo: ${chat.contactName}${semResposta}\n`;
-      summary += `📤 Enviadas: ${chat.sentMessages}\n`;
-      summary += `📥 Recebidas: ${chat.receivedMessages}\n`;
-      summary += `🙂 Sentimento: ${chat.sentimentLabel}\n`;
-      summary += `📌 Tópicos: ${chat.detectedThemes}\n`;
-      summary += `💬 Última Mensagem: "${lastMsg}"${lastMsgTime}\n`;
+  // Dashboard de performance
+  summary += `\n📈 **DASHBOARD DE PERFORMANCE**\n`;
+  summary += `═══════════════════════════════════════════════════\n`;
+  
+  const activeChats = analyzedChats.filter(c => c.sentMessages > 0 && c.receivedMessages > 0).length;
+  const engagementRate = totalConversations > 0 ? Math.round((activeChats / totalConversations) * 100) : 0;
+  
+  summary += `� **Taxa de Engajamento:** ${engagementRate}% (${activeChats}/${totalConversations})\n`;
+  summary += `⚡ **Produtividade:** ${totalSent > 0 ? Math.round(totalReceived / totalSent * 100) / 100 : 0} msgs recebidas/enviada\n`;
+  summary += `🎯 **Eficiência de Resposta:** ${avgResponseTime > 0 ? avgResponseTime + ' min' : 'Excelente'}\n`;
+  
+  // Ranking de atividade
+  const topActive = analyzedChats
+    .filter(c => c.totalMessages > 3)
+    .sort((a, b) => b.totalMessages - a.totalMessages)
+    .slice(0, 5);
+
+  if (topActive.length > 0) {
+    summary += `\n🏆 **TOP 5 CONVERSAS MAIS ATIVAS**\n`;
+    summary += `═══════════════════════════════════════════════════\n`;
+    topActive.forEach((chat, idx) => {
+      const status = chat.isUnanswered ? '⚠️' : chat.sentMessages > chat.receivedMessages ? '📤' : '📥';
+      const efficiency = chat.receivedMessages > 0 ? Math.round((chat.sentMessages / chat.receivedMessages) * 100) : 100;
+      summary += `${idx + 1}. ${status} **${chat.contactName}** | ${chat.totalMessages} msgs | ${efficiency}% resp\n`;
     });
-    summary += '\n';
   }
 
-  summary += `🤖 _Este é um resumo automático._ ⏰ ${new Date().toLocaleTimeString('pt-BR')}\n`;
-  summary += '\n-----------------------------------';
+  summary += `\n\n🤖 **Relatório gerado automaticamente** | ⏰ ${currentTime}\n`;
+  summary += `� **Sistema:** WhatsApp Business Intelligence v2.0\n`;
+  summary += `═══════════════════════════════════════════════════`;
+  
   return summary.trim();
+}
+
+function getTimeAgo(date) {
+  const now = new Date();
+  const diffMs = now - date;
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  if (diffHours > 0) {
+    return `${diffHours}h${diffMinutes > 0 ? diffMinutes + 'm' : ''} atrás`;
+  } else if (diffMinutes > 0) {
+    return `${diffMinutes}m atrás`;
+  } else {
+    return 'agora';
+  }
 }
 
 /**
