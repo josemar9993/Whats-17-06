@@ -23,7 +23,7 @@ const mediaHandler = new MediaHandler();
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
-const express = require('express');
+// const express = require('express'); // Comentado - não mais necessário
 const cron = require('node-cron');
 
 const startTime = Date.now(); // Marca o início do bot para cálculo de uptime
