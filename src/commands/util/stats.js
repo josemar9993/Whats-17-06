@@ -69,7 +69,7 @@ module.exports = {
 👥 *Grupos:* ${totalGrupos.toLocaleString()}
 👤 *Usuários:* ${totalUsuarios.toLocaleString()}
 ⏱️ *Uptime:* ${uptime}
-🔄 *Última atualização:* ${new Date().toLocaleTimeString()}`;
+🔄 *Última atualização:* ${new Date().toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
     }, 'stats-calculation');
   },
 
