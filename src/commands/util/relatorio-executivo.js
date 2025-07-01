@@ -1,7 +1,7 @@
 // src/commands/util/relatorio-executivo.js
 
 const { createDailySummary } = require('../../summarizer');
-const Database = require('../../database');
+const { getMessagesByDate, getAllMessages } = require('../../database');
 
 module.exports = {
   name: 'relatorio-executivo',
@@ -63,11 +63,14 @@ module.exports = {
 
       await message.reply('📊 Gerando relatório executivo... Por favor, aguarde.');
 
-      const db = new Database();
-      const messages = await db.getMessagesByDateRange(
-        Math.floor(startDate.getTime() / 1000),
-        Math.floor(endDate.getTime() / 1000)
-      );
+      // Busca mensagens do período especificado
+      let messages;
+      if (periodo === 'hoje') {
+        const today = new Date().toISOString().split('T')[0];
+        messages = await getMessagesByDate(today);
+      } else {
+        messages = await getAllMessages();
+      }
 
       if (!messages || messages.length === 0) {
         await message.reply(`📊 Nenhuma atividade encontrada para o período: ${label}`);

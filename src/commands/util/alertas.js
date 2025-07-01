@@ -1,6 +1,6 @@
 // src/commands/util/alertas.js
 
-const Database = require('../../database');
+const { getMessagesByDate, getAllMessages } = require('../../database');
 
 module.exports = {
   name: 'alertas',
@@ -18,11 +18,9 @@ module.exports = {
       
       await message.reply('🚨 Analisando situação crítica... Aguarde.');
 
-      const db = new Database();
-      const mensagensHoje = await db.getMessagesByDateRange(
-        Math.floor(inicioHoje.getTime() / 1000),
-        Math.floor(agora.getTime() / 1000)
-      );
+      // Busca mensagens de hoje
+      const today = new Date().toISOString().split('T')[0];
+      const mensagensHoje = await getMessagesByDate(today);
 
       // Agrupa por chat
       const chats = {};
