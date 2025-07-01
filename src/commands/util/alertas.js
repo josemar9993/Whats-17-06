@@ -35,6 +35,7 @@ module.exports = {
 
       // Análise de criticidade
       const alertasCriticos = [];
+      const agora = new Date();
       const agora_ms = agora.getTime();
 
       Object.values(chats).forEach(chat => {
