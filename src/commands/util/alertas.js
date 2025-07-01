@@ -1,6 +1,6 @@
 // src/commands/util/alertas.js
 
-const { getMessagesByDate, getAllMessages } = require('../../database');
+const { getMessagesByDate } = require('../../database');
 
 module.exports = {
   name: 'alertas',
@@ -13,8 +13,6 @@ module.exports = {
   async execute(message, args) {
     try {
       const limite = parseInt(args[0]) || 10;
-      const agora = new Date();
-      const inicioHoje = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
       
       await message.reply('🚨 Analisando situação crítica... Aguarde.');
 
