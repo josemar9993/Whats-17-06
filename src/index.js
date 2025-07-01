@@ -451,3 +451,9 @@ client.on('message_create', async (message) => {
     );
   }
 });
+
+// Inicializar o cliente WhatsApp
+logger.info('Inicializando cliente WhatsApp...');
+client.initialize().catch((err) => {
+  logger.error('Erro ao inicializar cliente WhatsApp:', err);
+});
