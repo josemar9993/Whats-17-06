@@ -232,10 +232,30 @@ async function createDailySummary(allMessages, periodLabel = null) {
 
   // Análise detalhada dos chats
   let analyzedChats = Object.values(chats).map(analyzeChatMetrics);
-  analyzedChats = analyzedChats.filter(chat => 
-    chat.contactName.toLowerCase() !== 'eu' && 
-    chat.contactName.toLowerCase() !== 'bot whts'
-  );
+  
+  // Debug: Log para verificar chats antes e depois do filtro
+  console.log(`[DEBUG SUMMARIZER] Total de chats antes do filtro: ${analyzedChats.length}`);
+  analyzedChats.forEach(chat => {
+    console.log(`[DEBUG CHAT] ${chat.contactName} - Sent: ${chat.sentMessages}, Received: ${chat.receivedMessages}`);
+  });
+  
+  // Filtro mais específico - remove apenas bots conhecidos
+  analyzedChats = analyzedChats.filter(chat => {
+    const name = chat.contactName.toLowerCase();
+    const isBot = name === 'eu' || 
+                  name === 'bot whts' || 
+                  name.includes('whatsapp') ||
+                  name.includes('system') ||
+                  name.includes('broadcast');
+    
+    if (isBot) {
+      console.log(`[DEBUG FILTER] Removendo bot: ${chat.contactName}`);
+    }
+    
+    return !isBot;
+  });
+  
+  console.log(`[DEBUG SUMMARIZER] Total de chats após filtro: ${analyzedChats.length}`);
 
   // Calcula métricas gerais
   const totalSent = analyzedChats.reduce((sum, chat) => sum + chat.sentMessages, 0);

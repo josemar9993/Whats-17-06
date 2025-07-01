@@ -68,8 +68,31 @@ module.exports = {
       if (periodo === 'hoje') {
         const today = new Date().toISOString().split('T')[0];
         messages = await getMessagesByDate(today);
+        
+        // Debug: Se não encontrar mensagens de hoje, busca últimas mensagens
+        if (!messages || messages.length === 0) {
+          console.log(`[DEBUG] Nenhuma mensagem encontrada para hoje (${today}), buscando todas as mensagens...`);
+          const allMessages = await getAllMessages();
+          
+          // Filtra últimas 24 horas
+          const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          messages = allMessages.filter(msg => {
+            const msgDate = new Date(msg.timestamp * 1000);
+            return msgDate >= last24Hours;
+          });
+          
+          console.log(`[DEBUG] Encontradas ${messages.length} mensagens nas últimas 24 horas`);
+        }
       } else {
         messages = await getAllMessages();
+        
+        // Filtra mensagens do período especificado
+        if (periodo !== 'semana' && periodo !== 'mes') {
+          messages = messages.filter(msg => {
+            const msgDate = new Date(msg.timestamp * 1000);
+            return msgDate >= startDate && msgDate <= endDate;
+          });
+        }
       }
 
       if (!messages || messages.length === 0) {

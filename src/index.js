@@ -189,16 +189,12 @@ client.on('message', async (msg) => {
       // Processar informações da mídia
       const mediaInfo = await mediaHandler.processMediaMessage(msg);
 
-      // Criar resposta amigável baseada no tipo de mídia
-      const response = await mediaHandler.createResponse(mediaInfo);
-
-      // Enviar resposta automática
-      if (response) {
-        await msg.reply(response);
-        logger.info(
-          `[RESPOSTA MÍDIA] Enviada para ${msg._data.notifyName || msg.from}: ${response.substring(0, 50)}...`
-        );
-      }
+      // Remover resposta automática para mídia
+      // const response = await mediaHandler.createResponse(mediaInfo);
+      // if (response) {
+      //   await msg.reply(response);
+      //   logger.info(`[RESPOSTA MÍDIA] Enviada para ${msg._data.notifyName || msg.from}: ${response.substring(0, 50)}...`);
+      // }
 
       // Salvar mensagem de mídia no banco com informações processadas
       try {
