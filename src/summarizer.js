@@ -302,13 +302,13 @@ async function createDailySummary(allMessages, periodLabel = null) {
   
   let summary = `
 ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃  � **RELATÓRIO EMPRESARIAL DIÁRIO**           ┃
+┃  📊 **RELATÓRIO EMPRESARIAL DIÁRIO**           ┃
 ┃  🗓️ **${periodo}** | ⏰ **${currentTime}**                    ┃
 ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
 
 🎯 **RESUMO EXECUTIVO**
 ═══════════════════════════════════════════════════
-�💬 **Conversas Ativas:** ${totalConversations}
+💬 **Conversas Ativas:** ${totalConversations}
 📨 **Mensagens Enviadas:** ${totalSent}
 📥 **Mensagens Recebidas:** ${totalReceived}
 📈 **Taxa de Resposta Geral:** ${totalReceived > 0 ? Math.round((Math.min(totalSent, totalReceived) / totalReceived) * 100) : 100}%
@@ -325,10 +325,10 @@ async function createDailySummary(allMessages, periodLabel = null) {
     alerts.push(`⚠️ **${unansweredContacts.length} CONTATO(S) SEM RESPOSTA**`);
   }
   if (slowResponseContacts.length > 0) {
-    alerts.push(`� **${slowResponseContacts.length} RESPOSTA(S) LENTA(S) (>1h)**`);
+    alerts.push(`🐢 **${slowResponseContacts.length} RESPOSTA(S) LENTA(S) (>1h)**`);
   }
   if (totalReceived > totalSent * 1.5) {
-    alerts.push(`� **SOBRECARGA: Recebendo ${Math.round(totalReceived/totalSent)}x mais mensagens**`);
+    alerts.push(`📥 **SOBRECARGA: Recebendo ${Math.round(totalReceived/totalSent)}x mais mensagens**`);
   }
 
   if (alerts.length > 0) {
@@ -348,7 +348,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
     summary += `═══════════════════════════════════════════════════\n`;
     businessThemes.forEach(([theme, count], idx) => {
       const priority = KEYWORD_THEMES.find(t => t.tema === theme)?.prioridade || 'MÉDIA';
-      const priorityEmoji = priority === 'CRÍTICA' ? '🔴' : priority === 'ALTA' ? '🟠' : priority === 'MÉDIA' ? '🟡' : '�';
+      const priorityEmoji = priority === 'CRÍTICA' ? '🔴' : priority === 'ALTA' ? '🟠' : priority === 'MÉDIA' ? '🟡' : '🟢';
       summary += `${idx + 1}. ${priorityEmoji} ${theme}: **${count} menção${count > 1 ? 'ões' : ''}**\n`;
     });
   }
@@ -366,7 +366,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
       summary += `${idx + 1}. ${urgencyEmoji} **${chat.contactName}**\n`;
       summary += `   📥 ${chat.receivedMessages} msg | 📤 ${chat.sentMessages} resp | ⏰ ${timeAgo}\n`;
       summary += `   💬 "${chat.lastMessage}"\n`;
-      summary += `   �️ ${chat.themesText}\n`;
+      summary += `   🏷️ ${chat.themesText}\n`;
       summary += `   😊 ${chat.sentimentLabel}\n\n`;
     });
   }
@@ -378,7 +378,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
   const activeChats = analyzedChats.filter(c => c.sentMessages > 0 && c.receivedMessages > 0).length;
   const engagementRate = totalConversations > 0 ? Math.round((activeChats / totalConversations) * 100) : 0;
   
-  summary += `� **Taxa de Engajamento:** ${engagementRate}% (${activeChats}/${totalConversations})\n`;
+  summary += `🔄 **Taxa de Engajamento:** ${engagementRate}% (${activeChats}/${totalConversations})\n`;
   summary += `⚡ **Produtividade:** ${totalSent > 0 ? Math.round(totalReceived / totalSent * 100) / 100 : 0} msgs recebidas/enviada\n`;
   summary += `🎯 **Eficiência de Resposta:** ${avgResponseTime > 0 ? avgResponseTime + ' min' : 'Excelente'}\n`;
   
@@ -399,7 +399,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
   }
 
   summary += `\n\n🤖 **Relatório gerado automaticamente** | ⏰ ${currentTime}\n`;
-  summary += `� **Sistema:** WhatsApp Business Intelligence v2.0\n`;
+  summary += `📱 Sistema: WhatsApp Business Intelligence v2.0\n`;
   summary += `═══════════════════════════════════════════════════`;
   
   return summary.trim();
