@@ -219,13 +219,20 @@ async function createDailySummary(allMessages, periodLabel = null) {
     
     if (!chats[chatId]) {
       const isGroup = chatId.endsWith('@g.us');
-      const chatName = message.senderName || message.contactName || chatId.replace(/@c\.us|@g\.us/, '');
+      let chatName = !message.fromMe && message.senderName
+        ? message.senderName
+        : (message.contactName || message.senderName || chatId.replace(/@c\.us|@g\.us/, ''));
       chats[chatId] = {
         chatId: chatId,
         name: chatName,
         isGroup,
         messages: []
       };
+    } else if (!message.fromMe && message.senderName) {
+      const currentName = chats[chatId].name.toLowerCase();
+      if (currentName === 'bot whts' || currentName === 'eu' || currentName === chatId.replace(/@c\.us|@g\.us/, '')) {
+        chats[chatId].name = message.senderName;
+      }
     }
     chats[chatId].messages.push(message);
   }
