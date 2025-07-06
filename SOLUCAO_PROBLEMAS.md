@@ -64,6 +64,7 @@ node -e "const db = require('./src/database'); db.getAllMessages().then(m => con
 2. **Filtro muito restritivo** → ✅ JÁ CORRIGIDO
 3. **Admin não configurado** → Configure no .env
 4. **Comandos não executando** → Verifique se o bot está conectado ao WhatsApp
+5. **Somente mensagens do próprio bot** → O filtro de segurança ignora mensagens enviadas pelo bot. Envie ou receba mensagens reais para gerar dados válidos no relatório
 
 ## 📊 **MELHORIAS IMPLEMENTADAS NO SUMMARIZER:**
 
