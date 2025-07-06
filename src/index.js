@@ -23,7 +23,7 @@ const mediaHandler = new MediaHandler();
 
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcodeTerminal = require('qrcode-terminal');
-// const express = require('express'); // Comentado - não mais necessário
+const express = require('express');
 const cron = require('node-cron');
 
 const startTime = Date.now(); // Marca o início do bot para cálculo de uptime
@@ -49,6 +49,68 @@ client.startTime = startTime;
 
 // Definir cliente global para integração
 global.whatsappClient = client;
+
+// Configurar Express server para health check e monitoramento
+const app = express();
+const PORT = process.env.PORT || 8080;
+
+// Middleware básico
+app.use(express.json());
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  const uptime = Math.floor((Date.now() - startTime) / 1000);
+  const hours = Math.floor(uptime / 3600);
+  const minutes = Math.floor((uptime % 3600) / 60);
+  const seconds = uptime % 60;
+  
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: `${hours}h ${minutes}m ${seconds}s`,
+    version: '1.1.0',
+    database: 'connected',
+    commands: client.commands ? client.commands.size : 0,
+    memory: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)} MB`,
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Status endpoint
+app.get('/status', (req, res) => {
+  res.json({
+    status: 'running',
+    whatsapp: global.whatsappClient ? 'connected' : 'disconnected',
+    commands_loaded: client.commands ? client.commands.size : 0,
+    uptime_seconds: Math.floor((Date.now() - startTime) / 1000),
+    node_version: process.version,
+    platform: process.platform
+  });
+});
+
+// Commands endpoint
+app.get('/commands', (req, res) => {
+  const commands = [];
+  if (client.commands) {
+    client.commands.forEach((command, name) => {
+      commands.push({
+        name: name,
+        description: command.description || 'Sem descrição'
+      });
+    });
+  }
+  res.json({
+    total: commands.length,
+    commands: commands
+  });
+});
+
+// Iniciar servidor Express
+app.listen(PORT, () => {
+  logger.info(`Express server iniciado na porta ${PORT}`);
+  logger.info(`Health check disponível em: http://localhost:${PORT}/health`);
+  logger.info(`Status disponível em: http://localhost:${PORT}/status`);
+});
 
 // Carregar comandos
 client.commands = new Map();
