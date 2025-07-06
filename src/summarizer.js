@@ -253,10 +253,14 @@ async function createDailySummary(allMessages, periodLabel = null) {
                   name === 'bot whts' || 
                   name.includes('whatsapp') ||
                   name.includes('system') ||
-                  name.includes('broadcast');
+                  name.includes('broadcast') ||
+                  chat.chatId.includes('status@broadcast');
     
+    // Debug melhorado
     if (isBot) {
-      console.log(`[DEBUG FILTER] Removendo bot: ${chat.contactName}`);
+      console.log(`[DEBUG FILTER] Removendo bot: ${chat.contactName} (${chat.chatId})`);
+    } else {
+      console.log(`[DEBUG FILTER] Mantendo chat: ${chat.contactName} - Sent: ${chat.sentMessages}, Received: ${chat.receivedMessages}`);
     }
     
     return !isBot;

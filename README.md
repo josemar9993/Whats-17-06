@@ -1,8 +1,22 @@
-# 🤖 WhatsApp Bot Enterprise - Configuração Estável v1.0
+# 🤖 WhatsApp Bot Enterprise - Sistema Completo v1.1.0
 
-![Status](https://img.shields.io/badge/Status-FUNCIONANDO-brightgreen) ![Version](https://img.shields.io/badge/Version-Estável-blue) ![Tests](https://img.shields.io/badge/Tests-7/7-green) ![Branch](https://img.shields.io/badge/Branch-versao--ontem--16h-orange)
+![Status](https://img.shields.io/badge/Status-FUNCIONANDO-brightgreen) ![Version](https://img.shields.io/badge/Version-1.1.0-blue) ![Tests](https://img.shields.io/badge/Tests-Aprovado-green) ![Deploy](https://img.shields.io/badge/Deploy-Automatizado-orange)
 
-Bot de WhatsApp **100% FUNCIONAL** em produção com configuração estável testada e aprovada. Sistema completo de registro de conversas, análise inteligente, resumos automáticos e **Express server integrado**.
+**Sistema empresarial completo para WhatsApp** com automação inteligente, relatórios executivos, deploy automatizado e monitoramento avançado. Totalmente configurado para produção no DigitalOcean.
+
+## 🚀 **NOVIDADES DA VERSÃO 1.1.0**
+
+### ✨ **Deploy Automatizado:**
+- 🔄 Script de deploy automático com backup
+- 📦 Configuração inicial do servidor DigitalOcean
+- 📊 Monitoramento de saúde do sistema
+- 📋 Checklist completo para alterações
+
+### 🛠️ **Melhorias no Sistema:**
+- 🔍 Relatórios mais precisos e informativos
+- 🐛 Correção de problemas com relatórios vazios
+- 📝 Logs de debug aprimorados
+- ⚡ Performance otimizada
 
 ## 🎯 **CONFIGURAÇÃO ESTÁVEL - NUNCA ALTERAR**
 

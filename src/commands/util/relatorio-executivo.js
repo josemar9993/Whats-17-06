@@ -65,14 +65,27 @@ module.exports = {
 
       // Busca mensagens do período especificado
       let messages;
+      
+      // Debug melhorado
+      console.log(`[DEBUG] Buscando mensagens para período: ${periodo}`);
+      console.log(`[DEBUG] Data início: ${startDate}, Data fim: ${endDate}`);
+      
       if (periodo === 'hoje') {
         const today = new Date().toISOString().split('T')[0];
+        console.log(`[DEBUG] Buscando mensagens de hoje: ${today}`);
         messages = await getMessagesByDate(today);
         
         // Debug: Se não encontrar mensagens de hoje, busca últimas mensagens
         if (!messages || messages.length === 0) {
           console.log(`[DEBUG] Nenhuma mensagem encontrada para hoje (${today}), buscando todas as mensagens...`);
           const allMessages = await getAllMessages();
+          console.log(`[DEBUG] Total de mensagens no banco: ${allMessages.length}`);
+          
+          if (allMessages.length > 0) {
+            // Mostra informações da última mensagem
+            const lastMsg = allMessages[allMessages.length - 1];
+            console.log(`[DEBUG] Última mensagem: ${new Date(lastMsg.timestamp * 1000).toISOString()}`);
+          }
           
           // Filtra últimas 24 horas
           const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -82,16 +95,30 @@ module.exports = {
           });
           
           console.log(`[DEBUG] Encontradas ${messages.length} mensagens nas últimas 24 horas`);
+        } else {
+          console.log(`[DEBUG] Encontradas ${messages.length} mensagens para hoje`);
         }
       } else {
+        console.log(`[DEBUG] Buscando todas as mensagens para filtrar por período`);
         messages = await getAllMessages();
+        console.log(`[DEBUG] Total de mensagens: ${messages.length}`);
         
         // Filtra mensagens do período especificado
         if (periodo !== 'semana' && periodo !== 'mes') {
+          const beforeFilter = messages.length;
           messages = messages.filter(msg => {
             const msgDate = new Date(msg.timestamp * 1000);
             return msgDate >= startDate && msgDate <= endDate;
           });
+          console.log(`[DEBUG] Mensagens após filtro de período: ${messages.length} (era ${beforeFilter})`);
+        } else {
+          // Para semana e mês, filtra por período
+          const beforeFilter = messages.length;
+          messages = messages.filter(msg => {
+            const msgDate = new Date(msg.timestamp * 1000);
+            return msgDate >= startDate && msgDate <= endDate;
+          });
+          console.log(`[DEBUG] Mensagens após filtro de ${periodo}: ${messages.length} (era ${beforeFilter})`);
         }
       }
 

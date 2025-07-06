@@ -1,7 +1,7 @@
 {
-  "name": "meu-bot-whatsapp",
-  "version": "1.0.0",
-  "description": "Bot WhatsApp com resumo de conversas e armazenamento em JSON.",
+  "name": "whatsapp-bot-enterprise",
+  "version": "1.1.0",
+  "description": "Sistema empresarial completo para WhatsApp com automação inteligente, relatórios executivos e deploy automatizado.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -20,22 +20,42 @@
     "connection:test": "node test-connection.js",
     "resumo:test": "node test-resumo-melhorado.js",
     "media:test": "node test-media-integration.js",
-    "docker:build-local": "(docker rmi -f meu-bot-whatsapp-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t meu-bot-whatsapp-local:latest .",
-    "docker:run-local": "docker run -it --rm -v \"$(pwd)/auth_data:/app/auth_data\" -v \"$(pwd)/logs:/app/logs\" --name meu-bot-local meu-bot-whatsapp-local:latest",
-    "docker:check-wwebjs": "docker run --rm meu-bot-whatsapp-local:latest node -e \"try { console.log(Object.keys(require('whatsapp-web.js'))); } catch (e) { console.error('Erro ao carregar whatsapp-web.js:', e); }\"",
-    "docker:stop-local": "(docker stop meu-bot-local && docker rm -f meu-bot-local) || echo \"Contêiner 'meu-bot-local' não encontrado ou já parado.\"",
+    "system:test": "node test-system.js",
+    "setup": "./setup.sh",
+    "deploy": "./deploy-digitalocean.sh",
+    "monitor": "./monitor-system.sh",
+    "docker:build-local": "(docker rmi -f whatsapp-bot-enterprise-local:latest || echo \"Aviso: Falha ao remover imagem anterior (pode nao existir). Prosseguindo com o build.\") && docker build --progress=plain -t whatsapp-bot-enterprise-local:latest .",
+    "docker:run-local": "docker run -it --rm -v \"$(pwd)/auth_data:/app/auth_data\" -v \"$(pwd)/logs:/app/logs\" --name whatsapp-bot-local whatsapp-bot-enterprise-local:latest",
+    "docker:check-wwebjs": "docker run --rm whatsapp-bot-enterprise-local:latest node -e \"try { console.log(Object.keys(require('whatsapp-web.js'))); } catch (e) { console.error('Erro ao carregar whatsapp-web.js:', e); }\"",
+    "docker:stop-local": "(docker stop whatsapp-bot-local && docker rm -f whatsapp-bot-local) || echo \"Contêiner 'whatsapp-bot-local' não encontrado ou já parado.\"",
     "docker:test-local": "npm run docker:stop-local && npm run docker:build-local && npm run docker:run-local"
   },
   "keywords": [
     "whatsapp",
     "bot",
-    "openai",
-    "summary"
+    "enterprise",
+    "automation",
+    "business-intelligence",
+    "reports",
+    "digitalocean",
+    "nodejs",
+    "express",
+    "sqlite"
   ],
-  "author": "josemar9993",
+  "author": {
+    "name": "WhatsApp Bot Enterprise Team",
+    "email": "contato@whatsappbot.com"
+  },
   "license": "MIT",
-  "homepage": "https://github.com/josemar9993/Whats-17-06#readme",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/seu-usuario/Whats-17-06.git"
+  },
+  "bugs": {
+    "url": "https://github.com/seu-usuario/Whats-17-06/issues"
+  },
+  "homepage": "https://github.com/seu-usuario/Whats-17-06#readme",
+  "private": false,
   "dependencies": {
     "@discordjs/collection": "^1.5.3",
     "@google-cloud/storage": "^7.0.0",
