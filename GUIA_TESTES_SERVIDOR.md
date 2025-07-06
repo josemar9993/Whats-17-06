@@ -7,16 +7,39 @@ Testar completamente o sistema no servidor DigitalOcean (161.35.176.216) para co
 
 ## 🔧 **COMANDOS DE TESTE NO SERVIDOR**
 
-### 1. **Conectar ao Servidor**
+### 1. **DEPLOY COMPLETO - EXECUTE ESTES COMANDOS:**
 ```bash
+# 1. Conectar ao servidor
 ssh root@161.35.176.216
+
+# 2. Navegar para o diretório e atualizar código
+cd /var/www/html
+git pull
+
+# 3. Popular banco com dados de teste (resolve relatórios vazios)
+node populate-database.js
+
+# 4. Executar teste automatizado completo
+./test-servidor-completo.sh
+
+# 5. Reiniciar o bot com código atualizado
+pm2 restart whatsapp-bot
+
+# 6. Verificar status final
+pm2 status
+pm2 logs whatsapp-bot --lines 20
+
+# 7. Testar health check
+curl http://localhost:8080/health
 ```
 
-### 2. **Verificar Status do Sistema**
+### 2. **SCRIPT DE DEPLOY EM UMA LINHA:**
 ```bash
-# Navegar para o diretório do projeto
-cd /var/www/html
+ssh root@161.35.176.216 "cd /var/www/html && git pull && node populate-database.js && ./test-servidor-completo.sh && pm2 restart whatsapp-bot && pm2 status && curl http://localhost:8080/health"
+```
 
+### 3. **Verificar Status do Sistema**
+```bash
 # Verificar se o código foi atualizado
 git log --oneline -5
 git status
