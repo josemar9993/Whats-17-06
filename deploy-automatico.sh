@@ -43,8 +43,13 @@ fi
 log "Enviando alterações para o GitHub..."
 git push origin main --no-verify
 
-# Informações do servidor
-read -p "Digite o IP do servidor: " SERVER_IP
+# Informações do servidor (valores padrão)
+SERVER_IP_DEFAULT="161.35.176.216"
+PROJECT_DIR="/var/www/html"
+
+read -p "Digite o IP do servidor (padrão: $SERVER_IP_DEFAULT): " SERVER_IP
+SERVER_IP=${SERVER_IP:-$SERVER_IP_DEFAULT}
+
 read -p "Digite o usuário SSH (padrão: root): " SSH_USER
 SSH_USER=${SSH_USER:-root}
 
@@ -54,19 +59,19 @@ log "Conectando ao servidor $SERVER_IP..."
 SSH_CMD="ssh -o StrictHostKeyChecking=no $SSH_USER@$SERVER_IP"
 
 log "Fazendo backup do banco de dados..."
-$SSH_CMD "cd /opt/whatsapp-bot && cp data/messages.db data/messages.db.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo 'Backup não necessário - primeira instalação'"
-
-log "Parando o serviço..."
-$SSH_CMD "pm2 stop whatsapp-bot 2>/dev/null || echo 'Serviço não estava rodando'"
+$SSH_CMD "cd $PROJECT_DIR && cp data/messages.db data/messages.db.backup.$(date +%Y%m%d_%H%M%S) 2>/dev/null || echo 'Backup não necessário - primeira instalação'"
 
 log "Atualizando código..."
-$SSH_CMD "cd /opt/whatsapp-bot && git pull origin main"
+$SSH_CMD "cd $PROJECT_DIR && git pull origin main"
 
 log "Instalando dependências..."
-$SSH_CMD "cd /opt/whatsapp-bot && npm install --production"
+$SSH_CMD "cd $PROJECT_DIR && npm install"
 
-log "Iniciando serviço..."
-$SSH_CMD "pm2 start /opt/whatsapp-bot/ecosystem.config.js"
+log "Reiniciando serviço..."
+$SSH_CMD "pm2 restart whatsapp-bot"
+
+log "Limpando logs antigos..."
+$SSH_CMD "cd $PROJECT_DIR && rm -f logs/*.log"
 
 log "Verificando status..."
 $SSH_CMD "pm2 status"
