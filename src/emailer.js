@@ -10,9 +10,9 @@ const { getAdminIds } = require('./utils/admin');
  * Configura o transportador de e-mail (Gmail) com base nas variáveis de ambiente.
  */
 const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: process.env.SMTP_PORT || 587,
+  secure: process.env.SMTP_PORT === '465', // true para 465, false para as outras
   auth: {
     user: config.emailUser,
     pass: config.emailPass

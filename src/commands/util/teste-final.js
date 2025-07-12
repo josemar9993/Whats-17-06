@@ -77,32 +77,32 @@ module.exports = {
         return;
       }
 
-      // 4. Verificação das Variáveis de Ambiente
-      await message.reply('4/5 - Verificando as variáveis de ambiente de e-mail...');
-      const emailUser = process.env.EMAIL_USER;
-      const emailPass = process.env.EMAIL_PASS;
-      const emailTo = process.env.EMAIL_TO;
-      const userOk = emailUser && emailUser.includes('@');
-      const passOk = emailPass && emailPass.length > 5;
-      const toOk = emailTo && emailTo.includes('@');
-      report += `4. *Variáveis de Ambiente:* ${userOk && passOk && toOk ? '✅ CONFIGURADAS' : '❌ FALHA'}\n`;
-      if (!userOk || !passOk || !toOk) {
-          report += `  - EMAIL_USER: ${userOk ? 'OK' : 'FALHA'}\n`;
-          report += `  - EMAIL_PASS: ${passOk ? 'OK' : 'FALHA'}\n`;
-          report += `  - EMAIL_TO: ${toOk ? 'OK' : 'FALHA'}\n\n`;
-          report += '⚠️ *Causa Provável:* Uma ou mais variáveis de ambiente para o e-mail não estão definidas corretamente no arquivo `.env` do servidor.\n';
-          await message.reply(report);
-          return;
-      }
+      // Etapa 3.5: Testar a conexão na porta do SMTPS (465)
+      await message.reply('4/5 - Testando conexão com o servidor do Gmail na porta alternativa (465)...');
+      logger.info('[DIAG] Verificando conexão na porta 465 com smtp.gmail.com...');
+      const portResult465 = await new Promise((resolve) => {
+        exec('nc -zv -w 5 smtp.gmail.com 465', (error, stdout, stderr) => {
+          if (!error && stdout.toLowerCase().includes('succeeded')) {
+            resolve({ success: true, output: stdout });
+          } else {
+            resolve({ success: false, output: error ? error.message : stderr });
+          }
+        });
+      });
+      portCheck465 = portResult465.success;
+      portOutput465 = portResult465.output;
+      logger.info(`[DIAG] Resultado da conexão na porta 465: ${portResult465.success}`);
 
 
-      // 5. Teste de Envio de E-mail Real
-      logger.info('[DIAG] Enviando e-mail de teste real...');
-      await message.reply('5/5 - Enviando um e-mail de teste real...');
-      const subject = `✅ Teste de Diagnóstico do Bot (${new Date().toLocaleString()})`;
-      const body = '<h1>Diagnóstico Completo</h1><p>Se você recebeu este e-mail, seu bot está configurado corretamente para enviar e-mails através do Gmail.</p>';
-      
-      const emailResult = await sendEmail({ subject, html: body }, client, true); // true para modo diagnóstico
+      // Etapa 4: Tentar enviar um e-mail de teste
+      // Usaremos a porta que teve sucesso, ou a padrão 587 se ambas falharem.
+      const testPort = portCheck587 ? 587 : (portCheck465 ? 465 : 587);
+      await message.reply(`5/5 - Tentando enviar um e-mail de teste real pela porta ${testPort}...`);
+      logger.info(`[DIAG] Tentando enviar e-mail de teste pela porta ${testPort}...`);
+      const emailResult = await sendTestEmail(client, message.from, { port: testPort });
+      emailCheck = emailResult.success;
+      emailOutput = emailResult.error ? (emailResult.error.message || JSON.stringify(emailResult.error)) : 'Enviado com sucesso!';
+      logger.info(`[DIAG] Resultado do envio de e-mail: ${emailResult.success}`);
 
       report += `5. *Envio de E-mail Real:* ${emailResult.success ? '✅ SUCESSO' : '❌ FALHA'}\n`;
       if (!emailResult.success) {
@@ -116,6 +116,33 @@ module.exports = {
               report += '- *Problema de Rede/Firewall:* Mesmo com a porta aberta, algo pode estar impedindo a comunicação.\n';
           }
       }
+
+      const finalReport = `✅ *Diagnóstico Completo do Sistema*
+1. *Conectividade com a Internet (Ping 8.8.8.8):* ${pingCheck ? '✅ SUCESSO' : '❌ FALHA'}
+2. *Resolução de DNS (smtp.gmail.com):* ${dnsCheck ? '✅ SUCESSO' : '❌ FALHA'}
+3. *Conexão na Porta 587 (SMTP):* ${portCheck587 ? '✅ SUCESSO' : '❌ FALHA'}
+4. *Conexão na Porta 465 (SMTPS):* ${portCheck465 ? '✅ SUCESSO' : '❌ FALHA'}
+5. *Envio de E-mail de Teste:* ${emailCheck ? '✅ SUCESSO' : '❌ FALHA'}
+
+*Detalhes Técnicos:*
+\`\`\`
+--- PING ---
+${pingOutput}
+
+--- DNS ---
+${dnsOutput}
+
+--- PORTA 587 ---
+${portOutput587}
+
+--- PORTA 465 ---
+${portOutput465}
+
+--- E-MAIL ---
+${emailOutput}
+\`\`\``;
+
+      await message.reply(finalReport);
 
       logger.info('[DIAG] Diagnóstico concluído.');
       await message.reply(report);
