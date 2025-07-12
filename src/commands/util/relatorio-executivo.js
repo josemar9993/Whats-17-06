@@ -1,5 +1,6 @@
 // src/commands/util/relatorio-executivo.js
 
+const logger = require('../../logger'); // <<< CORREÇÃO ADICIONADA
 const { createDailySummary } = require('../../summarizer');
 const { getMessagesByDate, getAllMessages } = require('../../database');
 const { sendEmail } = require('../../emailer');
