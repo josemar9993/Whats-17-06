@@ -111,7 +111,26 @@ async function exemploRelatorio() {
   console.log('🚀 Gerando exemplo de Relatório Empresarial...\n');
   
   try {
-    const relatorio = await createDailySummary(mensagensExemplo, `HOJE (${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}) - EXEMPLO`);
+    // Lógica de fuso horário mais robusta para 'America/Sao_Paulo' (UTC-3)
+    const now = new Date();
+    const utcOffset = now.getTimezoneOffset() * 60000; // Offset do servidor em milissegundos
+    const saoPauloOffset = -3 * 60 * 60000; // UTC-3 em milissegundos
+    const nowInSaoPaulo = new Date(now.getTime() + utcOffset + saoPauloOffset);
+
+    const reportDate = nowInSaoPaulo.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
+    
+    // Ajusta os timestamps para garantir que todos caiam no "hoje" de São Paulo
+    const startOfTodaySaoPaulo = new Date(nowInSaoPaulo);
+    startOfTodaySaoPaulo.setHours(0, 0, 0, 0);
+    
+    const adjustedMessages = mensagensExemplo.map(msg => {
+        const originalOffset = Math.floor(Date.now() / 1000) - msg.timestamp;
+        const newTimestamp = Math.floor(nowInSaoPaulo.getTime() / 1000) - originalOffset;
+        // Garante que a mensagem não seja do futuro e esteja dentro do dia de hoje em SP
+        return { ...msg, timestamp: Math.max(Math.floor(startOfTodaySaoPaulo.getTime() / 1000), newTimestamp) };
+    });
+
+    const relatorio = await createDailySummary(adjustedMessages, `HOJE (${reportDate}) - EXEMPLO`);
     console.log(relatorio);
     
     console.log('\n\n' + '='.repeat(60));
