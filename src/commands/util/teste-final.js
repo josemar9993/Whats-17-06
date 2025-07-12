@@ -1,11 +1,10 @@
 const { exec } = require('child_process');
 const logger = require('../../logger');
 const { sendEmail } = require('../../emailer');
-const path = require('path');
 
 // Função para executar um comando shell e retornar uma promessa
 const execShellCommand = (cmd) => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     exec(cmd, (error, stdout, stderr) => {
       if (error) {
         console.warn(error);

@@ -2,7 +2,7 @@
 
 const logger = require('../../logger'); // <<< CORREÇÃO ADICIONADA
 const { createDailySummary } = require('../../summarizer');
-const { getMessagesByDate, getAllMessages } = require('../../database');
+const { getAllMessages } = require('../../database');
 const { sendEmail } = require('../../emailer');
 const config = require('../../config');
 
@@ -152,7 +152,7 @@ Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}
         await sendEmail({
           to: config.emailTo,
           subject: subject,
-          html: summary, // Envia o HTML diretamente
+          html: emailContent, // Usa o conteúdo do e-mail formatado
         }, client); // <<< CORREÇÃO: Passa o client como segundo argumento
 
         await message.reply(`✅ Relatório executivo para "${periodo}" foi gerado e enviado por e-mail para ${config.emailTo}.`);
