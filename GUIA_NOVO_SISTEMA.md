@@ -170,9 +170,12 @@
 
 ### ⚙️ **CONFIGURAÇÃO**
 ```env
-# Já configurado no .env:
-EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_TO=schieste87@gmail.com
+# ================================
+# CONFIGURAÇÃO DE E-MAIL
+# ================================
+EMAIL_USER=seu-email@gmail.com
+EMAIL_PASS=sua-senha-de-app-gmail
+EMAIL_TO=email-destinatario@exemplo.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 ```

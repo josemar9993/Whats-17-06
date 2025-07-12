@@ -39,9 +39,9 @@ WHATSAPP_NOTIFY=true
 # ================================
 # CONFIGURAÇÃO DE E-MAIL
 # ================================
-EMAIL_USER=josemarschieste84@gmail.com
-EMAIL_PASS=ybzunhdulyozsyta
-EMAIL_TO=schieste87@gmail.com
+EMAIL_USER=seu-email@gmail.com
+EMAIL_PASS=sua-senha-de-app-gmail
+EMAIL_TO=email-destinatario@exemplo.com
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 
@@ -340,9 +340,9 @@ curl http://localhost:8080/health  # Testar health check
 
 ### 📧 **Configurações de Email:**
 - **SMTP:** smtp.gmail.com:587
-- **Usuário:** josemarschieste84@gmail.com
-- **Senha App:** ybzunhdulyozsyta
-- **Destinatário:** schieste87@gmail.com
+- **Usuário:** seu-email@gmail.com
+- **Senha App:** sua-senha-de-app-gmail
+- **Destinatário:** email-destinatario@exemplo.com
 
 ### 📱 **WhatsApp Admin:**
 - **Número:** 554899931227@c.us
