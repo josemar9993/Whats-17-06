@@ -10,7 +10,7 @@ const mensagensExemplo = [
     senderName: 'João Silva (Cliente Premium)',
     body: 'Bom dia! O sistema parou de funcionar aqui, é urgente!',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 2.5 * 60 * 60 * 1000) / 1000), // 2.5h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 9000, // 2.5h atrás
     contactName: 'João Silva'
   },
   {
@@ -18,7 +18,7 @@ const mensagensExemplo = [
     senderName: 'João Silva (Cliente Premium)', 
     body: 'Pessoal, precisamos resolver isso hoje, temos cliente esperando',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 2 * 60 * 60 * 1000) / 1000), // 2h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 7200, // 2h atrás
     contactName: 'João Silva'
   },
   {
@@ -26,7 +26,7 @@ const mensagensExemplo = [
     senderName: 'João Silva (Cliente Premium)',
     body: 'Erro crítico na aplicação, perdendo dinheiro a cada minuto',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 1.5 * 60 * 60 * 1000) / 1000), // 1.5h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 5400, // 1.5h atrás
     contactName: 'João Silva'
   },
   
@@ -35,7 +35,7 @@ const mensagensExemplo = [
     senderName: 'Maria Santos (Lead)',
     body: 'Oi! Gostaria de saber mais sobre os preços dos seus serviços',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 3 * 60 * 60 * 1000) / 1000), // 3h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 10800, // 3h atrás
     contactName: 'Maria Santos'
   },
   {
@@ -43,7 +43,7 @@ const mensagensExemplo = [
     senderName: 'Bot',
     body: 'Olá Maria! Fico feliz com seu interesse. Vou te passar nossa tabela de preços.',
     fromMe: true,
-    timestamp: Math.floor((Date.now() - 2.8 * 60 * 60 * 1000) / 1000), // 2.8h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 10080, // 2.8h atrás
     contactName: 'Maria Santos'
   },
   {
@@ -51,7 +51,7 @@ const mensagensExemplo = [
     senderName: 'Maria Santos (Lead)',
     body: 'Perfeito! Quando podemos marcar uma reunião para fechar a proposta?',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 1.5 * 60 * 60 * 1000) / 1000), // 1.5h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 5400, // 1.5h atrás
     contactName: 'Maria Santos'
   },
   
@@ -60,7 +60,7 @@ const mensagensExemplo = [
     senderName: 'Carlos Tech',
     body: 'Preciso de ajuda com a integração da API',
     fromMe: false, 
-    timestamp: Math.floor((Date.now() - 4 * 60 * 60 * 1000) / 1000), // 4h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 14400, // 4h atrás
     contactName: 'Carlos Tech'
   },
   {
@@ -68,7 +68,7 @@ const mensagensExemplo = [
     senderName: 'Bot',
     body: 'Claro Carlos! Vou te ajudar com a integração. Qual erro específico você está enfrentando?',
     fromMe: true,
-    timestamp: Math.floor((Date.now() - 3.5 * 60 * 60 * 1000) / 1000), // 3.5h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 12600, // 3.5h atrás
     contactName: 'Carlos Tech'
   },
   {
@@ -76,7 +76,7 @@ const mensagensExemplo = [
     senderName: 'Carlos Tech',
     body: 'Obrigado! O problema é no endpoint de pagamentos, retorna erro 500',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 3 * 60 * 60 * 1000) / 1000), // 3h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 10800, // 3h atrás
     contactName: 'Carlos Tech'
   },
   
@@ -85,7 +85,7 @@ const mensagensExemplo = [
     senderName: 'Ana Startup',
     body: 'Boa tarde! Vocês fazem desenvolvimento de apps mobile?',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 1 * 60 * 60 * 1000) / 1000), // 1h atrás
+    timestamp: Math.floor(Date.now() / 1000) - 3600, // 1h atrás
     contactName: 'Ana Startup'
   },
   
@@ -94,7 +94,7 @@ const mensagensExemplo = [
     senderName: 'Pedro Investidor',
     body: 'Recebi a proposta por email, vamos agendar para amanhã às 14h?',
     fromMe: false,
-    timestamp: Math.floor((Date.now() - 0.5 * 60 * 60 * 1000) / 1000), // 30min atrás
+    timestamp: Math.floor(Date.now() / 1000) - 1800, // 30min atrás
     contactName: 'Pedro Investidor'
   },
   {
@@ -102,7 +102,7 @@ const mensagensExemplo = [
     senderName: 'Bot',
     body: 'Perfeito Pedro! Agendado para amanhã às 14h. Te envio o link da reunião por aqui.',
     fromMe: true,
-    timestamp: Math.floor((Date.now() - 0.3 * 60 * 60 * 1000) / 1000), // 18min atrás
+    timestamp: Math.floor(Date.now() / 1000) - 1080, // 18min atrás
     contactName: 'Pedro Investidor'
   }
 ];
@@ -111,7 +111,7 @@ async function exemploRelatorio() {
   console.log('🚀 Gerando exemplo de Relatório Empresarial...\n');
   
   try {
-    const relatorio = await createDailySummary(mensagensExemplo, 'HOJE (01/07/2025) - EXEMPLO');
+    const relatorio = await createDailySummary(mensagensExemplo, `HOJE (${new Date().toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}) - EXEMPLO`);
     console.log(relatorio);
     
     console.log('\n\n' + '='.repeat(60));
