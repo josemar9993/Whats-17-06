@@ -15,6 +15,28 @@ const execShellCommand = (cmd) => {
   });
 };
 
+// Função para testar envio de e-mail
+async function sendTestEmail(client, to, options = {}) {
+  const { port = process.env.SMTP_PORT || 587 } = options;
+  
+  try {
+    const result = await sendEmail(
+      '🤖 Teste de E-mail - WhatsApp Bot',
+      `Este é um e-mail de teste enviado automaticamente pelo WhatsApp Bot.
+      
+Data/Hora: ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+Porta utilizada: ${port}
+Status: Sistema funcionando corretamente!`,
+      null,
+      []
+    );
+    
+    return { success: true, result };
+  } catch (error) {
+    return { success: false, error };
+  }
+}
+
 module.exports = {
   name: 'teste-final',
   description: 'Executa um diagnóstico completo do sistema, incluindo conectividade de rede e envio de e-mail.',
@@ -25,21 +47,17 @@ module.exports = {
     try {
       await message.reply('🤖 Iniciando diagnóstico completo... Isso pode levar até 2 minutos. Por favor, aguarde.');
 
-      let report = '✅ *Diagnóstico Completo do Sistema*\n\n';
+      let pingCheck = false, dnsCheck = false, portCheck587 = false, portCheck465 = false, emailCheck = false;
+      let pingOutput = '', dnsOutput = '', portOutput587 = '', portOutput465 = '', emailOutput = '';
 
-      // 1. Verificação de Conectividade Básica (Ping)
+      // Etapa 1: Verificação de Conectividade Básica (Ping)
       logger.info('[DIAG] Verificando conectividade com Google DNS...');
       await message.reply('1/5 - Testando conectividade básica com a internet (ping 8.8.8.8)...');
-      const pingOutput = await execShellCommand('ping -c 4 8.8.8.8');
-      const pingSuccess = pingOutput.includes('4 packets transmitted, 4 received');
-      report += `1. *Conectividade com a Internet (Ping 8.8.8.8):* ${pingSuccess ? '✅ SUCESSO' : '❌ FALHA'}\n`;
-      if (!pingSuccess) {
-        report += `\`\`\`${pingOutput}\`\`\`\n`;
-        await message.reply(report);
-        return;
-      }
+      pingOutput = await execShellCommand('ping -c 4 8.8.8.8');
+      pingCheck = pingOutput.includes('4 packets transmitted, 4 received');
+      logger.info(`[DIAG] Resultado do ping: ${pingCheck}`);
 
-      // 2. Verificação de Resolução de DNS
+      // Etapa 2: Testar a resolução de DNS
       await message.reply('2/5 - Testando resolução de DNS para smtp.gmail.com...');
       logger.info('[DIAG] Verificando resolução de DNS para smtp.gmail.com...');
       const dnsResult = await new Promise((resolve) => {
@@ -57,27 +75,23 @@ module.exports = {
       dnsOutput = dnsResult.output;
       logger.info(`[DIAG] Resultado do DNS: ${dnsResult.success}`);
 
-      report += `2. *Resolução de DNS (smtp.gmail.com):* ${dnsCheck ? '✅ SUCESSO' : '❌ FALHA'}\n`;
-      if (!dnsCheck) {
-        report += `\`\`\`${dnsOutput}\`\`\`\n`;
-        await message.reply(report);
-        return;
-      }
-
-      // 3. Verificação de Conexão na Porta 587 (SMTP)
-      logger.info('[DIAG] Verificando conexão na porta 587 com smtp.gmail.com...');
+      // Etapa 3: Testar a conexão na porta do SMTP (587)
       await message.reply('3/5 - Testando conexão com o servidor do Gmail na porta 587...');
-      const ncOutput = await execShellCommand('nc -zv -w 5 smtp.gmail.com 587');
-      const ncSuccess = ncOutput.toLowerCase().includes('succeeded') || ncOutput.toLowerCase().includes('connected');
-      report += `3. *Conexão SMTP (Porta 587):* ${ncSuccess ? '✅ SUCESSO' : '❌ FALHA'}\n`;
-       if (!ncSuccess) {
-        report += `\`\`\`${ncOutput}\`\`\`\n\n`;
-        report += '⚠️ *Causa Provável:* O firewall (provavelmente da DigitalOcean) está bloqueando a conexão de saída na porta 587. Verifique as "Outbound Rules" do seu Cloud Firewall.\n';
-        await message.reply(report);
-        return;
-      }
+      logger.info('[DIAG] Verificando conexão na porta 587 com smtp.gmail.com...');
+      const portResult587 = await new Promise((resolve) => {
+        exec('nc -zv -w 5 smtp.gmail.com 587', (error, stdout, stderr) => {
+          if (!error && stdout.toLowerCase().includes('succeeded')) {
+            resolve({ success: true, output: stdout });
+          } else {
+            resolve({ success: false, output: error ? error.message : stderr });
+          }
+        });
+      });
+      portCheck587 = portResult587.success;
+      portOutput587 = portResult587.output;
+      logger.info(`[DIAG] Resultado da conexão na porta 587: ${portResult587.success}`);
 
-      // Etapa 3.5: Testar a conexão na porta do SMTPS (465)
+      // Etapa 4: Testar a conexão na porta do SMTPS (465)
       await message.reply('4/5 - Testando conexão com o servidor do Gmail na porta alternativa (465)...');
       logger.info('[DIAG] Verificando conexão na porta 465 com smtp.gmail.com...');
       const portResult465 = await new Promise((resolve) => {
@@ -93,8 +107,7 @@ module.exports = {
       portOutput465 = portResult465.output;
       logger.info(`[DIAG] Resultado da conexão na porta 465: ${portResult465.success}`);
 
-
-      // Etapa 4: Tentar enviar um e-mail de teste
+      // Etapa 5: Tentar enviar um e-mail de teste
       // Usaremos a porta que teve sucesso, ou a padrão 587 se ambas falharem.
       const testPort = portCheck587 ? 587 : (portCheck465 ? 465 : 587);
       await message.reply(`5/5 - Tentando enviar um e-mail de teste real pela porta ${testPort}...`);
@@ -103,19 +116,6 @@ module.exports = {
       emailCheck = emailResult.success;
       emailOutput = emailResult.error ? (emailResult.error.message || JSON.stringify(emailResult.error)) : 'Enviado com sucesso!';
       logger.info(`[DIAG] Resultado do envio de e-mail: ${emailResult.success}`);
-
-      report += `5. *Envio de E-mail Real:* ${emailResult.success ? '✅ SUCESSO' : '❌ FALHA'}\n`;
-      if (!emailResult.success) {
-          report += `   - *Erro:* \`${emailResult.error.code || 'Desconhecido'}\`\n`;
-          report += `   - *Mensagem:* ${emailResult.error.response || 'N/A'}\n\n`;
-          report += '⚠️ *Causa Provável:*\n';
-          if (emailResult.error.code === 'EAUTH') {
-              report += '- *Credenciais Inválidas:* O `EMAIL_USER` ou `EMAIL_PASS` (senha de app) estão incorretos no arquivo `.env`.\n';
-              report += '- *Segurança do Gmail:* O Gmail pode ter bloqueado a tentativa. Verifique seu e-mail por alertas de segurança.\n';
-          } else {
-              report += '- *Problema de Rede/Firewall:* Mesmo com a porta aberta, algo pode estar impedindo a comunicação.\n';
-          }
-      }
 
       const finalReport = `✅ *Diagnóstico Completo do Sistema*
 1. *Conectividade com a Internet (Ping 8.8.8.8):* ${pingCheck ? '✅ SUCESSO' : '❌ FALHA'}
@@ -145,7 +145,6 @@ ${emailOutput}
       await message.reply(finalReport);
 
       logger.info('[DIAG] Diagnóstico concluído.');
-      await message.reply(report);
 
     } catch (error) {
       logger.error(`Erro durante o comando de diagnóstico: ${error.message}`);
