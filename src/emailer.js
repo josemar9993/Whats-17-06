@@ -28,6 +28,7 @@ const transporter = nodemailer.createTransport({
 /**
  * Envia um e-mail de forma genérica.
  * @param {object} mailDetails - Objeto com os detalhes do e-mail (to, subject, text, html).
+ * @param {object} [client] - Instância do cliente do WhatsApp para enviar notificações de falha.
  */
 async function sendEmail(mailDetails, client) {
   const mailOptions = {
@@ -46,35 +47,31 @@ async function sendEmail(mailDetails, client) {
   } catch (error) {
     const errorMessage = error.message || error.toString();
     logger.error(
-      `Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`
+      `Erro ao enviar o e-mail "${mailOptions.subject}": ${errorMessage}`,
+      { subject: mailOptions.subject, error }
     );
 
-    if (client) {
+    // Tenta notificar o admin via WhatsApp se o client for fornecido
+    if (client && typeof client.sendMessage === 'function') {
       try {
         const adminIds = getAdminIds();
         const adminId = adminIds[0];
 
         if (adminId) {
-          await client.sendMessage(
-            adminId,
-            `⚠️ Falha ao enviar e-mail: ${errorMessage}`
-          );
-          logger.info(
-            `Notificação de falha enviada via WhatsApp para ${adminId}.`
-          );
+          const notificationMessage = `⚠️ *Falha Crítica no Envio de E-mail* ⚠️\n\n*Assunto:* ${mailOptions.subject}\n*Erro:* ${errorMessage}\n\nO sistema não conseguiu enviar este e-mail. Verifique as configurações de SMTP e a conexão do servidor.`;
+          await client.sendMessage(adminId, notificationMessage);
+          logger.info(`Notificação de falha no envio de e-mail enviada via WhatsApp para ${adminId}.`);
         } else {
-          logger.warn(
-            'Admin não definido para receber notificação de falha por WhatsApp.'
-          );
+          logger.warn('Nenhum admin ID configurado para receber notificação de falha de e-mail.');
         }
       } catch (notifyErr) {
-        logger.error(
-          'Erro ao enviar notificação de falha via WhatsApp:',
-          notifyErr
-        );
+        logger.error('Falha ao enviar a notificação de erro via WhatsApp:', { message: notifyErr.message, stack: notifyErr.stack });
       }
+    } else if (client) {
+      logger.warn('O objeto client foi fornecido para sendEmail, mas não possui o método sendMessage.');
     }
 
+    // Re-lança o erro para que a função chamadora saiba que a operação falhou.
     throw error;
   }
 }

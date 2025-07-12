@@ -2,6 +2,8 @@
 
 const { createDailySummary } = require('../../summarizer');
 const { getMessagesByDate, getAllMessages } = require('../../database');
+const { sendEmail } = require('../../emailer');
+const config = require('../../config');
 
 module.exports = {
   name: 'relatorio-executivo',
@@ -11,40 +13,47 @@ module.exports = {
   adminOnly: true,
   category: 'admin',
 
-  async execute(message, args) {
+  async execute(message, args, client) { // <<< CORREÇÃO: Adicionado 'client'
     try {
       const periodo = args[0]?.toLowerCase() || 'hoje';
       let startDate, endDate, label;
-      const now = new Date();
+      
+      // --- LÓGICA DE DATA COM FUSO HORÁRIO DE SÃO PAULO (GMT-3) ---
+      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+
+      // Zera a hora para o início do dia em São Paulo
+      const startOfToday = new Date(now);
+      startOfToday.setHours(0, 0, 0, 0);
 
       switch (periodo) {
         case 'hoje':
-          startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-          endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
-          label = `HOJE (${startDate.toLocaleDateString('pt-BR')})`;
+          startDate = new Date(startOfToday);
+          endDate = new Date(startOfToday);
+          endDate.setHours(23, 59, 59, 999);
+          label = `HOJE (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
         case 'ontem':
-          const yesterday = new Date(now);
+          const yesterday = new Date(startOfToday);
           yesterday.setDate(yesterday.getDate() - 1);
-          startDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
-          endDate = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
-          label = `ONTEM (${startDate.toLocaleDateString('pt-BR')})`;
+          startDate = new Date(yesterday);
+          endDate = new Date(yesterday);
+          endDate.setHours(23, 59, 59, 999);
+          label = `ONTEM (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
         case 'semana':
-          const weekStart = new Date(now);
-          weekStart.setDate(now.getDate() - now.getDay());
-          weekStart.setHours(0, 0, 0, 0);
+          const weekStart = new Date(startOfToday);
+          weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Domingo
           startDate = weekStart;
           endDate = now;
-          label = `ESTA SEMANA (${startDate.toLocaleDateString('pt-BR')} - ${endDate.toLocaleDateString('pt-BR')})`;
+          label = `ESTA SEMANA (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} - ${endDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
         case 'mes':
           startDate = new Date(now.getFullYear(), now.getMonth(), 1);
           endDate = now;
-          label = `ESTE MÊS (${startDate.toLocaleDateString('pt-BR')} - ${endDate.toLocaleDateString('pt-BR')})`;
+          label = `ESTE MÊS (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} - ${endDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
         default:
@@ -52,9 +61,10 @@ module.exports = {
           const dateMatch = periodo.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
           if (dateMatch) {
             const [, day, month, year] = dateMatch;
-            startDate = new Date(year, month - 1, day);
-            endDate = new Date(year, month - 1, day, 23, 59, 59);
-            label = `${startDate.toLocaleDateString('pt-BR')}`;
+            // As datas são criadas no fuso do servidor, mas representam o dia em SP
+            startDate = new Date(year, month - 1, day, 0, 0, 0);
+            endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+            label = `${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
           } else {
             await message.reply(`❌ Período inválido. Use: hoje, ontem, semana, mes ou DD/MM/YYYY`);
             return;
@@ -67,60 +77,17 @@ module.exports = {
       let messages;
       
       // Debug melhorado
-      console.log(`[DEBUG] Buscando mensagens para período: ${periodo}`);
-      console.log(`[DEBUG] Data início: ${startDate}, Data fim: ${endDate}`);
+      logger.debug(`[RELATORIO] Buscando mensagens para período: ${periodo}`);
+      logger.debug(`[RELATORIO] Data início (Servidor): ${startDate.toISOString()}`);
+      logger.debug(`[RELATORIO] Data fim (Servidor): ${endDate.toISOString()}`);
       
-      if (periodo === 'hoje') {
-        const today = new Date().toISOString().split('T')[0];
-        console.log(`[DEBUG] Buscando mensagens de hoje: ${today}`);
-        messages = await getMessagesByDate(today);
-        
-        // Debug: Se não encontrar mensagens de hoje, busca últimas mensagens
-        if (!messages || messages.length === 0) {
-          console.log(`[DEBUG] Nenhuma mensagem encontrada para hoje (${today}), buscando todas as mensagens...`);
-          const allMessages = await getAllMessages();
-          console.log(`[DEBUG] Total de mensagens no banco: ${allMessages.length}`);
-          
-          if (allMessages.length > 0) {
-            // Mostra informações da última mensagem
-            const lastMsg = allMessages[allMessages.length - 1];
-            console.log(`[DEBUG] Última mensagem: ${new Date(lastMsg.timestamp * 1000).toISOString()}`);
-          }
-          
-          // Filtra últimas 24 horas
-          const last24Hours = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          messages = allMessages.filter(msg => {
-            const msgDate = new Date(msg.timestamp * 1000);
-            return msgDate >= last24Hours;
-          });
-          
-          console.log(`[DEBUG] Encontradas ${messages.length} mensagens nas últimas 24 horas`);
-        } else {
-          console.log(`[DEBUG] Encontradas ${messages.length} mensagens para hoje`);
-        }
-      } else {
-        console.log(`[DEBUG] Buscando todas as mensagens para filtrar por período`);
-        messages = await getAllMessages();
-        console.log(`[DEBUG] Total de mensagens: ${messages.length}`);
-        
-        // Filtra mensagens do período especificado
-        if (periodo !== 'semana' && periodo !== 'mes') {
-          const beforeFilter = messages.length;
-          messages = messages.filter(msg => {
-            const msgDate = new Date(msg.timestamp * 1000);
-            return msgDate >= startDate && msgDate <= endDate;
-          });
-          console.log(`[DEBUG] Mensagens após filtro de período: ${messages.length} (era ${beforeFilter})`);
-        } else {
-          // Para semana e mês, filtra por período
-          const beforeFilter = messages.length;
-          messages = messages.filter(msg => {
-            const msgDate = new Date(msg.timestamp * 1000);
-            return msgDate >= startDate && msgDate <= endDate;
-          });
-          console.log(`[DEBUG] Mensagens após filtro de ${periodo}: ${messages.length} (era ${beforeFilter})`);
-        }
-      }
+      const allMessages = await getAllMessages();
+      messages = allMessages.filter(msg => {
+        const msgDate = new Date(msg.timestamp * 1000);
+        return msgDate >= startDate && msgDate <= endDate;
+      });
+      
+      logger.debug(`[RELATORIO] Total de mensagens no período: ${messages.length}`);
 
       if (!messages || messages.length === 0) {
         await message.reply(`📊 Nenhuma atividade encontrada para o período: ${label}`);
@@ -162,7 +129,6 @@ module.exports = {
 
       // Envia por email se configurado
       try {
-        const emailer = require('../../emailer');
         const emailContent = `
 RELATÓRIO EXECUTIVO WHATSAPP
 ${label}
@@ -173,18 +139,28 @@ ${summary.replace(/\*\*/g, '').replace(/\*/g, '')}
 Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}
         `;
         
-        await emailer.sendEmail(
-          `📊 Relatório Executivo WhatsApp - ${label}`,
-          emailContent
-        );
-        
-        await message.reply('✅ Relatório também enviado por email!');
+        // Verifica se o conteúdo do relatório não está vazio
+        if (!summary || summary.includes('Nenhuma atividade registrada')) {
+          console.log(`[RELATORIO] Relatório para o período "${periodo}" está vazio. Abortando envio de e-mail.`);
+          await message.reply(`Não há dados para gerar o relatório executivo para o período "${periodo}". Nenhuma ação necessária.`);
+          return;
+        }
+
+        // Enviar o relatório por e-mail
+        const subject = `Relatório Executivo WhatsApp - ${periodo.toUpperCase()}`;
+        await sendEmail({
+          to: config.emailTo,
+          subject: subject,
+          html: summary, // Envia o HTML diretamente
+        }, client); // <<< CORREÇÃO: Passa o client como segundo argumento
+
+        await message.reply(`✅ Relatório executivo para "${periodo}" foi gerado e enviado por e-mail para ${config.emailTo}.`);
       } catch (emailError) {
-        console.log('Erro ao enviar email:', emailError.message);
+        logger.error(`Erro ao enviar email: ${emailError.message}`);
       }
 
     } catch (error) {
-      console.error('Erro no comando relatorio-executivo:', error);
+      logger.error(`Erro no comando relatorio-executivo: ${error.message}`, { stack: error.stack });
       await message.reply(`❌ Erro ao gerar relatório: ${error.message}`);
     }
   }
