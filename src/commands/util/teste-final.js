@@ -40,12 +40,25 @@ module.exports = {
       }
 
       // 2. Verificação de Resolução de DNS
-      logger.info('[DIAG] Verificando resolução de DNS para smtp.gmail.com...');
       await message.reply('2/5 - Testando resolução de DNS para smtp.gmail.com...');
-      const dnsOutput = await execShellCommand('nslookup smtp.gmail.com');
-      const dnsSuccess = dnsOutput.includes('server');
-      report += `2. *Resolução de DNS (smtp.gmail.com):* ${dnsSuccess ? '✅ SUCESSO' : '❌ FALHA'}\n`;
-      if (!dnsSuccess) {
+      logger.info('[DIAG] Verificando resolução de DNS para smtp.gmail.com...');
+      const dnsResult = await new Promise((resolve) => {
+        exec('nslookup smtp.gmail.com', (error, stdout, stderr) => {
+          // A resposta "Non-authoritative answer" é normal e não deve ser tratada como erro.
+          // O nslookup retorna um status de erro (1) para isso, então verificamos o stdout.
+          if (stdout.includes('smtp.gmail.com') && stdout.includes('Address')) {
+            resolve({ success: true, output: stdout || stderr });
+          } else {
+            resolve({ success: false, output: error ? error.message : stderr });
+          }
+        });
+      });
+      dnsCheck = dnsResult.success;
+      dnsOutput = dnsResult.output;
+      logger.info(`[DIAG] Resultado do DNS: ${dnsResult.success}`);
+
+      report += `2. *Resolução de DNS (smtp.gmail.com):* ${dnsCheck ? '✅ SUCESSO' : '❌ FALHA'}\n`;
+      if (!dnsCheck) {
         report += `\`\`\`${dnsOutput}\`\`\`\n`;
         await message.reply(report);
         return;
