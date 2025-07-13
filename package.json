@@ -15,12 +15,6 @@
     "format:check": "prettier --check \"src/**/*.js\"",
     "validate": "npm run lint && npm run test && npm run format:check",
     "prepare": "husky install",
-    "email:test-basic": "node test-email-basic.js",
-    "email:test-final": "node test-email-final.js",
-    "connection:test": "node test-connection.js",
-    "resumo:test": "node test-resumo-melhorado.js",
-    "media:test": "node test-media-integration.js",
-    "system:test": "node test-system.js",
     "setup": "./setup.sh",
     "deploy": "./deploy-digitalocean.sh",
     "monitor": "./monitor-system.sh",
@@ -49,12 +43,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/seu-usuario/Whats-17-06.git"
+    "url": "https://github.com/josemar9993/Whats-17-06.git"
   },
   "bugs": {
-    "url": "https://github.com/seu-usuario/Whats-17-06/issues"
+    "url": "https://github.com/josemar9993/Whats-17-06/issues"
   },
-  "homepage": "https://github.com/seu-usuario/Whats-17-06#readme",
+  "homepage": "https://github.com/josemar9993/Whats-17-06#readme",
   "private": false,
   "dependencies": {
     "@discordjs/collection": "^1.5.3",
