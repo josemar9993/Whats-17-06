@@ -9,13 +9,10 @@ if (!fs.existsSync(dir)) {
   fs.mkdirSync(dir, { recursive: true });
 }
 
-// Adiciona logs para debug
-console.log('[DATABASE] Conectando ao banco:', dbPath);
+// Database connection with error handling
 const db = new sqlite3.Database(dbPath, (err) => {
   if (err) {
     console.error('[DATABASE] Erro ao conectar:', err.message);
-  } else {
-    console.log('[DATABASE] Conectado com sucesso ao SQLite');
   }
 });
 

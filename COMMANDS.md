@@ -10,6 +10,23 @@ Exemplo:
 !ping
 ```
 
+## !deploy
+**[ADMIN ONLY]** Executa deploy automático no servidor. Permite atualizar o sistema diretamente pelo WhatsApp.
+
+Subcomandos:
+- `!deploy servidor` - Deploy no servidor remoto
+- `!deploy local` - Restart local
+- `!deploy docker` - Deploy com Docker
+- `!deploy status` - Status do sistema
+- `!deploy logs` - Últimos logs
+- `!deploy restart` - Reiniciar PM2
+
+Exemplo:
+```
+!deploy servidor
+!deploy status
+```
+
 ## !pendencias
 Disponível apenas para o número definido em `WHATSAPP_ADMIN_NUMBER`. O bot envia um resumo por e-mail com as conversas que aguardam resposta.
 

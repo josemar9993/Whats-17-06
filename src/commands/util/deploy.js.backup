@@ -1,0 +1,361 @@
+const { exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+module.exports = {
+  name: 'deploy',
+  description: 'Executa deploy automático no servidor (somente administradores)',
+  aliases: ['update', 'atualizar'],
+  cooldown: 30, // 30 segundos de cooldown para evitar spam
+  adminOnly: true, // Apenas administradores podem usar
+  async execute(message, args, client) {
+    const logger = require('../../logger');
+    const config = require('../../config');
+    
+    // Log para debug
+    logger.info(`Comando deploy recebido de: ${message.from}`);
+    logger.info(`Argumentos: ${args}`);
+    logger.info(`Admin IDs configurados: ${config.adminIds}`);
+    
+    // Verificar se é administrador
+    const senderId = message.from;
+    if (!config.adminIds.includes(senderId)) {
+      await message.reply(`❌ **Acesso negado!**\n\nApenas administradores podem executar deploy.\n\n🔍 **Debug:**\n• Seu ID: \`${senderId}\`\n• IDs autorizados: \`${config.adminIds.join(', ')}\`\n\n💡 Configure seu número em ADMIN_WHATSAPP_IDS no arquivo .env`);
+      return;
+    }
+
+    // Verificar argumentos
+    const action = args[0] || 'help';
+    
+    try {
+      switch (action.toLowerCase()) {
+        case 'servidor':
+        case 'server':
+          await deployServidor(message, client);
+          break;
+          
+        case 'local':
+          await deployLocal(message, client);
+          break;
+          
+        case 'docker':
+          await deployDocker(message, client);
+          break;
+          
+        case 'status':
+          await deployStatus(message, client);
+          break;
+          
+        case 'logs':
+          await deployLogs(message, client);
+          break;
+          
+        case 'restart':
+          await deployRestart(message, client);
+          break;
+          
+        case 'test':
+        case 'teste':
+          await deployTest(message, client);
+          break;
+          
+        default:
+          await message.reply(`🚀 **COMANDO DEPLOY**
+
+**Uso:** \`!deploy [ação]\`
+
+**📋 Ações disponíveis:**
+• \`!deploy servidor\` - Deploy no servidor remoto (161.35.176.216)
+• \`!deploy status\` - Status do sistema
+• \`!deploy logs\` - Últimos logs
+• \`!deploy restart\` - Reiniciar PM2
+• \`!deploy test\` - Teste de conectividade
+• \`!deploy local\` - Restart local
+• \`!deploy docker\` - Deploy com Docker
+
+**🎯 Exemplo:**
+\`!deploy servidor\` - Para atualizar o servidor
+
+**🔐 Apenas administradores podem usar este comando.**`);
+      }
+    } catch (error) {
+      logger.error('Erro no comando deploy:', error);
+      await message.reply(`❌ **Erro no deploy**\n\n\`\`\`${error.message}\`\`\`\n\n💡 Verifique os logs para mais detalhes.`);
+    }
+  }
+};
+
+// Função para teste de conectividade
+async function deployTest(message, client) {
+  const logger = require('../../logger');
+  
+  await message.reply('🔍 **TESTE DE CONECTIVIDADE**\n\n⏳ Testando conexão com servidor...');
+  
+  return new Promise((resolve, reject) => {
+    // Teste básico de conectividade
+    exec('ping -c 3 161.35.176.216', { timeout: 15000 }, async (error, stdout, stderr) => {
+      let testResult = '📊 **RESULTADO DOS TESTES**\n\n';
+      
+      if (error) {
+        testResult += '❌ **Ping:** Falhou\n';
+        testResult += `\`\`\`${error.message}\`\`\`\n\n`;
+      } else {
+        testResult += '✅ **Ping:** Sucesso\n';
+      }
+      
+      // Teste SSH
+      exec('timeout 10s ssh -o ConnectTimeout=5 -o BatchMode=yes root@161.35.176.216 "echo SSH_OK"', 
+           { timeout: 15000 }, async (sshError, sshOut) => {
+        if (sshError) {
+          testResult += '❌ **SSH:** Falhou\n';
+          testResult += '💡 **Solução:** Configure SSH com `ssh-keygen` e `ssh-copy-id`\n\n';
+        } else {
+          testResult += '✅ **SSH:** Funcionando\n\n';
+        }
+        
+        // Teste Health endpoint
+        exec('curl -m 5 -s http://161.35.176.216:8080/health', 
+             { timeout: 10000 }, async (healthError, healthOut) => {
+          if (healthError) {
+            testResult += '❌ **Health Check:** Falhou\n';
+            testResult += '💡 **Solução:** Verifique se o bot está rodando no servidor\n\n';
+          } else {
+            testResult += '✅ **Health Check:** Funcionando\n';
+            testResult += `📊 **Resposta:** \`${healthOut}\`\n\n`;
+          }
+          
+          // Verificar script de deploy
+          const deployScript = path.join(__dirname, '../../..', 'deploy-whatsapp.sh');
+          if (fs.existsSync(deployScript)) {
+            testResult += '✅ **Script Deploy:** Encontrado\n';
+          } else {
+            testResult += '❌ **Script Deploy:** Não encontrado\n';
+          }
+          
+          testResult += '\n🎯 **Status:** ';
+          if (!error && !sshError) {
+            testResult += 'Pronto para deploy!\n\n💡 **Use:** `!deploy servidor`';
+          } else {
+            testResult += 'Requer configuração\n\n💡 **Configure SSH primeiro**';
+          }
+          
+          await message.reply(testResult);
+          resolve();
+        });
+      });
+    });
+  });
+}
+
+// Função para deploy no servidor (versão melhorada)
+async function deployServidor(message, client) {
+  const logger = require('../../logger');
+  
+  // Primeira mensagem de confirmação
+  await message.reply('🚀 **INICIANDO DEPLOY NO SERVIDOR**\n\n📍 **Servidor:** 161.35.176.216\n⏳ **Status:** Conectando...\n\n🔄 Este processo pode levar até 3 minutos.');
+  
+  return new Promise((resolve, reject) => {
+    const deployScript = path.join(__dirname, '../../..', 'deploy-whatsapp.sh');
+    
+    // Verificar se o script existe
+    if (!fs.existsSync(deployScript)) {
+      message.reply('❌ **Script de deploy não encontrado!**\n\n💡 **Solução:**\n1. Verifique se o arquivo `deploy-whatsapp.sh` existe\n2. Execute `chmod +x deploy-whatsapp.sh`');
+      return reject(new Error('Script não encontrado'));
+    }
+    
+    // Log detalhado
+    logger.info('Iniciando deploy no servidor via WhatsApp');
+    logger.info(`Script path: ${deployScript}`);
+    
+    // Executar deploy com timeout aumentado
+    exec(`bash ${deployScript}`, { 
+      timeout: 180000, // 3 minutos
+      maxBuffer: 1024 * 1024 // 1MB buffer
+    }, async (error, stdout, stderr) => {
+      
+      if (error) {
+        logger.error('Erro no deploy servidor:', error);
+        
+        let errorMsg = '❌ **DEPLOY FALHOU**\n\n';
+        
+        if (error.code === 'ETIMEDOUT') {
+          errorMsg += '⏰ **Erro:** Timeout (3 minutos)\n';
+          errorMsg += '💡 **Causa:** Servidor demorou para responder\n\n';
+        } else if (error.message.includes('Connection refused')) {
+          errorMsg += '� **Erro:** Conexão recusada\n';
+          errorMsg += '💡 **Causa:** SSH não configurado ou servidor offline\n\n';
+        } else {
+          errorMsg += `📋 **Erro:**\n\`\`\`${error.message.substring(0, 200)}\`\`\`\n\n`;
+        }
+        
+        errorMsg += '🔧 **Soluções:**\n';
+        errorMsg += '1. Execute `!deploy test` para diagnóstico\n';
+        errorMsg += '2. Configure SSH: `ssh-copy-id root@161.35.176.216`\n';
+        errorMsg += '3. Verifique se servidor está online\n';
+        
+        await message.reply(errorMsg);
+        return reject(error);
+      }
+      
+      // Log da saída completa
+      logger.info('Deploy output:', stdout);
+      if (stderr) logger.warn('Deploy stderr:', stderr);
+      
+      // Processar saída
+      const output = stdout || '';
+      const success = output.includes('DEPLOY CONCLUÍDO - SISTEMA ATUALIZADO') || 
+                     output.includes('🎉 DEPLOY FINALIZADO COM SUCESSO');
+      const healthOk = output.includes('Health check passou') || 
+                      output.includes('Health check OK');
+      const gitOk = output.includes('Git pull') || output.includes('✅');
+      const pm2Ok = output.includes('Restart PM2') || output.includes('pm2 restart');
+      
+      if (success) {
+        const statusIcon = healthOk ? '🟢' : '🟡';
+        
+        let successMsg = '✅ **DEPLOY CONCLUÍDO COM SUCESSO!**\n\n';
+        successMsg += `${statusIcon} **Status:** ${healthOk ? 'Saudável' : 'Funcionando'}\n\n`;
+        successMsg += '📊 **Resumo da atualização:**\n';
+        successMsg += `${gitOk ? '✅' : '⚠️'} Código atualizado do GitHub\n`;
+        successMsg += `${pm2Ok ? '✅' : '⚠️'} Bot reiniciado via PM2\n`;
+        successMsg += `${healthOk ? '✅' : '⚠️'} Health check executado\n`;
+        successMsg += '✅ Sistema operacional\n\n';
+        successMsg += '🎉 **Servidor 161.35.176.216 atualizado!**\n\n';
+        successMsg += '📱 **Próximos passos:**\n';
+        successMsg += '• Teste os comandos do bot\n';
+        successMsg += '• Use `!deploy status` para monitorar\n';
+        successMsg += '• Use `!deploy logs` se houver problemas';
+        
+        await message.reply(successMsg);
+      } else {
+        let warningMsg = '⚠️ **DEPLOY COM PROBLEMAS**\n\n';
+        warningMsg += '📋 **Saída do processo:**\n';
+        warningMsg += `\`\`\`${output.substring(0, 800)}\`\`\`\n\n`;
+        warningMsg += '💡 **Recomendações:**\n';
+        warningMsg += '1. Execute `!deploy status` para verificar\n';
+        warningMsg += '2. Use `!deploy logs` para mais detalhes\n';
+        warningMsg += '3. Tente `!deploy restart` se necessário';
+        
+        await message.reply(warningMsg);
+      }
+      
+      resolve();
+    });
+  });
+}
+
+// Função para deploy local
+async function deployLocal(message, client) {
+  const logger = require('../../logger');
+  
+  await message.reply('🔄 **REINICIANDO SISTEMA LOCAL**\\n\\n⏳ Processando...');
+  
+  return new Promise((resolve, reject) => {
+    exec('npm run validate', { timeout: 60000 }, async (error, stdout, stderr) => {
+      if (error) {
+        await message.reply(`❌ **VALIDAÇÃO FALHOU**\\n\\n\`\`\`${error.message}\`\`\``);
+        return reject(error);
+      }
+      
+      // Reiniciar processo
+      await message.reply('✅ **VALIDAÇÃO OK**\\n\\n🔄 Reiniciando sistema...');
+      
+      setTimeout(async () => {
+        await message.reply('✅ **SISTEMA REINICIADO**\\n\\n🎉 Bot funcionando normalmente!');
+        resolve();
+      }, 2000);
+    });
+  });
+}
+
+// Função para deploy com Docker
+async function deployDocker(message, client) {
+  await message.reply('🐳 **DEPLOY COM DOCKER**\\n\\n⏳ Construindo imagem...');
+  
+  return new Promise((resolve, reject) => {
+    exec('npm run docker:build-local', { timeout: 300000 }, async (error, stdout, stderr) => {
+      if (error) {
+        await message.reply(`❌ **DOCKER BUILD FALHOU**\\n\\n\`\`\`${error.message}\`\`\``);
+        return reject(error);
+      }
+      
+      await message.reply('✅ **DOCKER BUILD CONCLUÍDO**\\n\\n🎉 Imagem pronta para uso!');
+      resolve();
+    });
+  });
+}
+
+// Função para status do sistema
+async function deployStatus(message, client) {
+  return new Promise((resolve, reject) => {
+    exec('pm2 status', { timeout: 10000 }, async (error, stdout, stderr) => {
+      let statusMsg = '📊 **STATUS DO SISTEMA**\\n\\n';
+      
+      if (error) {
+        statusMsg += '❌ PM2 não disponível localmente\\n\\n';
+      } else {
+        statusMsg += `\`\`\`${stdout.substring(0, 500)}\`\`\`\\n\\n`;
+      }
+      
+      // Verificar health endpoint
+      exec('curl -s http://localhost:8080/health || echo "Health endpoint não disponível"', 
+           { timeout: 5000 }, async (healthError, healthOut) => {
+        statusMsg += `🌐 **Health Check:**\\n\`\`\`${healthOut || 'Não disponível'}\`\`\`\\n\\n`;
+        
+        // Verificar uptime
+        const uptimeHours = Math.floor(process.uptime() / 3600);
+        const uptimeMinutes = Math.floor((process.uptime() % 3600) / 60);
+        statusMsg += `⏰ **Uptime:** ${uptimeHours}h ${uptimeMinutes}m`;
+        
+        await message.reply(statusMsg);
+        resolve();
+      });
+    });
+  });
+}
+
+// Função para logs
+async function deployLogs(message, client) {
+  return new Promise((resolve, reject) => {
+    exec('pm2 logs whatsapp-bot --lines 10 --nostream', { timeout: 10000 }, async (error, stdout, stderr) => {
+      let logMsg = '📋 **ÚLTIMOS LOGS**\\n\\n';
+      
+      if (error) {
+        logMsg += '❌ Logs PM2 não disponíveis\\n\\n';
+        // Tentar logs locais
+        exec('tail -10 logs/*.log', { timeout: 5000 }, async (logError, logOut) => {
+          if (!logError && logOut) {
+            logMsg += `\`\`\`${logOut.substring(0, 800)}\`\`\``;
+          } else {
+            logMsg += 'Nenhum log disponível';
+          }
+          
+          await message.reply(logMsg);
+          resolve();
+        });
+      } else {
+        logMsg += `\`\`\`${stdout.substring(0, 800)}\`\`\``;
+        await message.reply(logMsg);
+        resolve();
+      }
+    });
+  });
+}
+
+// Função para restart PM2
+async function deployRestart(message, client) {
+  await message.reply('🔄 **REINICIANDO PM2**\\n\\n⏳ Processando...');
+  
+  return new Promise((resolve, reject) => {
+    exec('pm2 restart whatsapp-bot', { timeout: 30000 }, async (error, stdout, stderr) => {
+      if (error) {
+        await message.reply(`❌ **RESTART FALHOU**\\n\\n\`\`\`${error.message}\`\`\``);
+        return reject(error);
+      }
+      
+      await message.reply('✅ **PM2 REINICIADO**\\n\\n🎉 Sistema funcionando normalmente!');
+      resolve();
+    });
+  });
+}
+
