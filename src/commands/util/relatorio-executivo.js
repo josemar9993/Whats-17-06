@@ -90,12 +90,13 @@ module.exports = {
       
       logger.debug(`[RELATORIO] Total de mensagens no período: ${messages.length}`);
 
-      if (!messages || messages.length === 0) {
+      const summary = await createDailySummary(messages, label);
+      
+      // Não envia relatório se não houver mensagens ou o resumo estiver vazio
+      if (!messages || messages.length === 0 || !summary || summary.trim() === '' || summary.includes('❌ Nenhuma atividade registrada')) {
         await message.reply(`📊 Nenhuma atividade encontrada para o período: ${label}`);
         return;
       }
-
-      const summary = await createDailySummary(messages, label);
       
       // Divide o relatório em partes se for muito longo
       const maxLength = 4000;
