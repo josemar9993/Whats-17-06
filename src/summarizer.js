@@ -249,12 +249,16 @@ async function createDailySummary(allMessages, periodLabel = null) {
   // Filtro mais específico - remove apenas bots conhecidos
   analyzedChats = analyzedChats.filter(chat => {
     const name = chat.contactName.toLowerCase();
-    const isBot = name === 'eu' || 
-                  name === 'bot whts' || 
-                  name.includes('whatsapp') ||
-                  name.includes('system') ||
-                  name.includes('broadcast') ||
-                  chat.chatId.includes('status@broadcast');
+    const normalizedName = name.trim();
+
+    const isBot =
+      normalizedName === 'eu' ||
+      normalizedName === 'bot whts' ||
+      normalizedName === 'whatsapp' ||
+      normalizedName === 'system' ||
+      chat.chatId.includes('status@broadcast') ||
+      normalizedName.includes('server') ||
+      normalizedName.includes('broadcast');
     
     // Debug melhorado
     if (isBot) {
@@ -267,6 +271,10 @@ async function createDailySummary(allMessages, periodLabel = null) {
   });
   
   console.log(`[DEBUG SUMMARIZER] Total de chats após filtro: ${analyzedChats.length}`);
+
+  if (analyzedChats.length === 0) {
+    return '📊 *RELATÓRIO EMPRESARIAL DIÁRIO*\n\n❌ Nenhuma atividade registrada no período.';
+  }
 
   // Calcula métricas gerais
   const totalSent = analyzedChats.reduce((sum, chat) => sum + chat.sentMessages, 0);
