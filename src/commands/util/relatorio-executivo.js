@@ -1,8 +1,8 @@
 // src/commands/util/relatorio-executivo.js
 
-const logger = require('../../logger'); // <<< CORREÇÃO ADICIONADA
+const logger = require('../../logger');
 const { createDailySummary } = require('../../summarizer');
-const { getAllMessages } = require('../../database');
+const { getAllMessages, getMessagesByDateRange, getMessageStats } = require('../../database');
 const { sendEmail } = require('../../emailer');
 const config = require('../../config');
 
@@ -14,16 +14,20 @@ module.exports = {
   adminOnly: true,
   category: 'admin',
 
-  async execute(message, args, client) { // <<< CORREÇÃO: Adicionado 'client'
+  async execute(message, args, client) {
     try {
       const periodo = args[0]?.toLowerCase() || 'hoje';
       let startDate, endDate, label;
       
       // --- LÓGICA DE DATA COM FUSO HORÁRIO DE SÃO PAULO (GMT-3) ---
-      const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
-
-      // Zera a hora para o início do dia em São Paulo
-      const startOfToday = new Date(now);
+      // Use moment.js or proper timezone handling to ensure consistency
+      const now = new Date();
+      
+      // Create São Paulo timezone date
+      const spDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+      
+      // Get start of today in São Paulo timezone
+      const startOfToday = new Date(spDate);
       startOfToday.setHours(0, 0, 0, 0);
 
       switch (periodo) {
@@ -47,13 +51,15 @@ module.exports = {
           const weekStart = new Date(startOfToday);
           weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Domingo
           startDate = weekStart;
-          endDate = now;
+          endDate = new Date(spDate);
+          endDate.setHours(23, 59, 59, 999);
           label = `ESTA SEMANA (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} - ${endDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
         case 'mes':
-          startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-          endDate = now;
+          startDate = new Date(spDate.getFullYear(), spDate.getMonth(), 1);
+          endDate = new Date(spDate);
+          endDate.setHours(23, 59, 59, 999);
           label = `ESTE MÊS (${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} - ${endDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
           break;
           
@@ -62,7 +68,6 @@ module.exports = {
           const dateMatch = periodo.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
           if (dateMatch) {
             const [, day, month, year] = dateMatch;
-            // As datas são criadas no fuso do servidor, mas representam o dia em SP
             startDate = new Date(year, month - 1, day, 0, 0, 0);
             endDate = new Date(year, month - 1, day, 23, 59, 59, 999);
             label = `${startDate.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}`;
@@ -74,27 +79,50 @@ module.exports = {
 
       await message.reply('📊 Gerando relatório executivo... Por favor, aguarde.');
 
-      // Busca mensagens do período especificado
-      let messages;
+      // First check database statistics
+      const stats = await getMessageStats();
+      logger.info(`[RELATORIO] Estatísticas do banco: ${stats.total} mensagens, ${stats.unique_chats} chats`);
       
+      if (stats.total === 0) {
+        await message.reply(`📊 *BANCO DE DADOS VAZIO*\n\n❌ Não há mensagens armazenadas no banco de dados.\n\n🔧 Isso pode indicar que:\n• O bot não está recebendo mensagens\n• Há problemas na conexão com o banco\n• O sistema ainda não foi utilizado\n\n📋 Execute \`!ajuda\` para mais informações.`);
+        return;
+      }
+
       // Debug melhorado
-      logger.debug(`[RELATORIO] Buscando mensagens para período: ${periodo}`);
-      logger.debug(`[RELATORIO] Data início (Servidor): ${startDate.toISOString()}`);
-      logger.debug(`[RELATORIO] Data fim (Servidor): ${endDate.toISOString()}`);
+      logger.info(`[RELATORIO] Buscando mensagens para período: ${periodo}`);
+      logger.info(`[RELATORIO] Data início: ${startDate.toISOString()}`);
+      logger.info(`[RELATORIO] Data fim: ${endDate.toISOString()}`);
+      logger.info(`[RELATORIO] Timezone: America/Sao_Paulo`);
       
-      const allMessages = await getAllMessages();
-      messages = allMessages.filter(msg => {
-        const msgDate = new Date(msg.timestamp * 1000);
-        return msgDate >= startDate && msgDate <= endDate;
-      });
+      // Use the new date range function for more accurate filtering
+      const messages = await getMessagesByDateRange(startDate, endDate);
       
-      logger.debug(`[RELATORIO] Total de mensagens no período: ${messages.length}`);
+      logger.info(`[RELATORIO] Total de mensagens encontradas: ${messages.length}`);
+
+      // If no messages found, try alternative approach
+      if (messages.length === 0) {
+        // Try getting all messages and show debug info
+        const allMessages = await getAllMessages();
+        logger.warn(`[RELATORIO] Nenhuma mensagem encontrada para o período. Total no banco: ${allMessages.length}`);
+        
+        if (allMessages.length > 0) {
+          const oldestMsg = allMessages[0];
+          const newestMsg = allMessages[allMessages.length - 1];
+          const oldestDate = new Date(oldestMsg.timestamp * 1000);
+          const newestDate = new Date(newestMsg.timestamp * 1000);
+          
+          await message.reply(`📊 *NENHUMA MENSAGEM ENCONTRADA PARA O PERÍODO*\n\n📅 **Período solicitado:** ${label}\n\n📋 **Dados disponíveis:**\n• Total de mensagens: ${allMessages.length}\n• Mensagem mais antiga: ${oldestDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\n• Mensagem mais recente: ${newestDate.toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}\n\n💡 **Dica:** Use outros períodos como \`ontem\`, \`semana\` ou \`mes\``);
+        } else {
+          await message.reply(`📊 Nenhuma atividade encontrada para o período: ${label}`);
+        }
+        return;
+      }
 
       const summary = await createDailySummary(messages, label);
       
-      // Não envia relatório se não houver mensagens ou o resumo estiver vazio
-      if (!messages || messages.length === 0 || !summary || summary.trim() === '' || summary.includes('❌ Nenhuma atividade registrada')) {
-        await message.reply(`📊 Nenhuma atividade encontrada para o período: ${label}`);
+      // Check if summary generation was successful
+      if (!summary || summary.trim() === '' || summary.includes('❌ Nenhuma atividade registrada')) {
+        await message.reply(`📊 Erro ao gerar relatório para o período: ${label}\n\nEncontradas ${messages.length} mensagens, mas não foi possível processar os dados.`);
         return;
       }
       
@@ -131,39 +159,36 @@ module.exports = {
 
       // Envia por email se configurado
       try {
-        const emailContent = `
+        if (config.emailTo && config.emailUser && config.emailPass) {
+          const emailContent = `
 RELATÓRIO EXECUTIVO WHATSAPP
 ${label}
 
-${summary.replace(/\*\*/g, '').replace(/\*/g, '')}
+${summary.replace(/\*\*/g, '').replace(/\*/g, '').replace(/┏[━┓┃┗┛═]+/g, '').replace(/[📊💬📨📥📈⏱️🕐🚨⚠️🐢📥🎯📊🔄⚡🎯🏆🤖📱]/g, '')}
 
 ---
-Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR')}
-        `;
-        
-        // Verifica se o conteúdo do relatório não está vazio
-        if (!summary || summary.includes('Nenhuma atividade registrada')) {
-          console.log(`[RELATORIO] Relatório para o período "${periodo}" está vazio. Abortando envio de e-mail.`);
-          await message.reply(`Não há dados para gerar o relatório executivo para o período "${periodo}". Nenhuma ação necessária.`);
-          return;
+Relatório gerado automaticamente em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}
+          `;
+          
+          const subject = `Relatório Executivo WhatsApp - ${label}`;
+          await sendEmail({
+            to: config.emailTo,
+            subject: subject,
+            html: emailContent.replace(/\n/g, '<br>'),
+          }, client);
+
+          await message.reply(`✅ Relatório executivo enviado por e-mail para ${config.emailTo}.`);
+        } else {
+          logger.warn('[RELATORIO] Configuração de e-mail incompleta. Relatório não enviado por e-mail.');
         }
-
-        // Enviar o relatório por e-mail
-        const subject = `Relatório Executivo WhatsApp - ${periodo.toUpperCase()}`;
-        await sendEmail({
-          to: config.emailTo,
-          subject: subject,
-          html: emailContent, // Usa o conteúdo do e-mail formatado
-        }, client); // <<< CORREÇÃO: Passa o client como segundo argumento
-
-        await message.reply(`✅ Relatório executivo para "${periodo}" foi gerado e enviado por e-mail para ${config.emailTo}.`);
       } catch (emailError) {
-        logger.error(`Erro ao enviar email: ${emailError.message}`);
+        logger.error(`[RELATORIO] Erro ao enviar email: ${emailError.message}`);
+        await message.reply(`⚠️ Relatório gerado com sucesso, mas não foi possível enviar por e-mail.`);
       }
 
     } catch (error) {
-      logger.error(`Erro no comando relatorio-executivo: ${error.message}`, { stack: error.stack });
-      await message.reply(`❌ Erro ao gerar relatório: ${error.message}`);
+      logger.error(`[RELATORIO] Erro no comando relatorio-executivo: ${error.message}`, { stack: error.stack });
+      await message.reply(`❌ Erro ao gerar relatório: ${error.message}\n\n🔧 Verifique os logs para mais detalhes.`);
     }
   }
 };

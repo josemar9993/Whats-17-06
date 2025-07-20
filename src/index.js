@@ -218,17 +218,39 @@ client.on('ready', () => {
         `[CRON] Executando tarefa de resumo diário agendada para "${summaryCron}"...`
       );
       try {
-        const today = new Date().toISOString().slice(0, 10);
-        const chats = await db.getMessagesByDate(today);
+        // Use proper timezone handling for the scheduled task
+        const now = new Date();
+        const spDate = new Date(now.toLocaleString('en-US', { timeZone: 'America/Sao_Paulo' }));
+        
+        // Get yesterday's date in São Paulo timezone
+        const yesterday = new Date(spDate);
+        yesterday.setDate(yesterday.getDate() - 1);
+        yesterday.setHours(0, 0, 0, 0);
+        
+        const endDate = new Date(yesterday);
+        endDate.setHours(23, 59, 59, 999);
+        
+        logger.info(`[CRON] Buscando mensagens para ${yesterday.toLocaleDateString('pt-BR')} no fuso de São Paulo`);
+        
+        const messages = await db.getMessagesByDateRange(yesterday, endDate);
 
-        if (!chats || chats.length === 0) {
+        if (!messages || messages.length === 0) {
           logger.info(
-            `[CRON] Nenhuma conversa encontrada para ${today}, resumo não gerado.`
+            `[CRON] Nenhuma mensagem encontrada para ${yesterday.toLocaleDateString('pt-BR')}, resumo não gerado.`
           );
+          
+          // Check if database has any messages at all
+          const stats = await db.getMessageStats();
+          if (stats.total === 0) {
+            logger.warn('[CRON] Banco de dados está vazio - nenhuma mensagem foi armazenada');
+          }
           return;
         }
 
-        const summaryText = await createDailySummary(chats);
+        logger.info(`[CRON] Encontradas ${messages.length} mensagens para processamento`);
+        
+        const label = `ONTEM (${yesterday.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })})`;
+        const summaryText = await createDailySummary(messages, label);
 
         const adminIds = getAdminIds();
         const primaryAdminId = adminIds[0];
@@ -248,7 +270,8 @@ client.on('ready', () => {
       } catch (error) {
         logger.error(
           '[CRON] Erro ao executar a tarefa de resumo diário:',
-          error.message
+          error.message,
+          { stack: error.stack }
         );
         try {
           const adminIds = getAdminIds();
@@ -324,7 +347,14 @@ client.on('message', async (msg) => {
           `[MÍDIA SALVA] Tipo: ${mediaInfo.mediaType} | De: ${msg._data.notifyName || msg.from}`
         );
       } catch (dbErr) {
-        logger.error('Erro ao salvar mensagem de mídia no banco:', dbErr);
+        logger.error('[DATABASE] Erro ao salvar mensagem de mídia no banco:', dbErr.message, {
+          msgId: msg.id?.id,
+          from: msg.from,
+          mediaType: mediaInfo.mediaType,
+          stack: dbErr.stack
+        });
+        
+        // Continue processing even if save fails
       }
 
       // Para mensagens de mídia, não processar como comando mesmo se tiver prefix
@@ -346,21 +376,40 @@ client.on('message', async (msg) => {
       return;
     }
 
-    await db.addMessageFromWhatsapp(msg);
-    logger.info(
-      `[MENSAGEM RECEBIDA] De: ${msg._data.notifyName || msg.from} | Mensagem: "${msg.body}"`
-    );
-  } catch (dbErr) {
-    // Usar error handler para tratar erros de banco
-    const errorResponse = await errorHandler.handle(dbErr, {
-      operation: 'save_message',
-      userId: msg.from,
-      command: 'message_received'
-    });
+    // Attempt to save message with improved error handling
+    try {
+      await db.addMessageFromWhatsapp(msg);
+      logger.info(
+        `[MENSAGEM RECEBIDA] De: ${msg._data.notifyName || msg.from} | Mensagem: "${msg.body}"`
+      );
+    } catch (dbErr) {
+      logger.error(`[DATABASE] Erro crítico ao salvar mensagem: ${dbErr.message}`, {
+        msgId: msg.id?.id,
+        from: msg.from,
+        timestamp: msg.timestamp,
+        type: msg.type,
+        stack: dbErr.stack
+      });
+      
+      // Use error handler for database errors
+      const errorResponse = await errorHandler.handle(dbErr, {
+        operation: 'save_message',
+        userId: msg.from,
+        command: 'message_received'
+      });
 
-    if (errorResponse.shouldReply) {
-      await msg.reply(errorResponse.userMessage);
+      if (errorResponse.shouldReply) {
+        await msg.reply(errorResponse.userMessage);
+      }
+      
+      // Don't return here - continue processing the message even if save fails
     }
+  } catch (validationErr) {
+    logger.error(`[VALIDATION] Erro na validação da mensagem: ${validationErr.message}`, {
+      from: msg.from,
+      type: msg.type,
+      hasBody: !!msg.body
+    });
   }
 
   // Verifica se é um comando
