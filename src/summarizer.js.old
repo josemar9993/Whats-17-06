@@ -116,40 +116,7 @@ async function createDailySummary(allMessages, periodLabel = null) {
 
   // Análise e ordenação
   let analyzedChats = Object.values(chats).map(analyzeChatMetrics);
-    // Debug: Log para verificar chats antes e depois do filtro
-  console.log(`[DEBUG SUMMARIZER] Total de chats antes do filtro: ${analyzedChats.length}`);
-  analyzedChats.forEach(chat => {
-    console.log(`[DEBUG CHAT] ${chat.contactName} - Sent: ${chat.sentMessages}, Received: ${chat.receivedMessages}`);
-  });
-  
-  // Filtro corrigido - não remove chats com atividade real
-  analyzedChats = analyzedChats.filter(chat => {
-    const name = chat.contactName.toLowerCase();
-    const normalizedName = name.trim();
-
-    // Remove apenas status broadcasts e chats claramente inválidos
-    const isInvalidChat =
-      chat.chatId.includes('status@broadcast') ||
-      normalizedName === 'system' ||
-      normalizedName === 'whatsapp' ||
-      (normalizedName.includes('broadcast') && chat.totalMessages < 2);
-    
-    // Mantém todos os chats com atividade real (mensagens enviadas ou recebidas)
-    const hasActivity = chat.sentMessages > 0 || chat.receivedMessages > 0;
-    
-    // Debug melhorado
-    if (isInvalidChat) {
-      console.log(`[DEBUG FILTER] Removendo chat inválido: ${chat.contactName} (${chat.chatId})`);
-    } else if (!hasActivity) {
-      console.log(`[DEBUG FILTER] Removendo chat sem atividade: ${chat.contactName}`);
-    } else {
-      console.log(`[DEBUG FILTER] Mantendo chat ativo: ${chat.contactName} - Sent: ${chat.sentMessages}, Received: ${chat.receivedMessages}`);
-    }
-    
-    return !isInvalidChat && hasActivity;
-  });
-  
-  console.log(`[DEBUG SUMMARIZER] Total de chats após filtro: ${analyzedChats.length}`);
+  analyzedChats = analyzedChats.filter(chat => chat.contactName.toLowerCase() !== 'eu');
   analyzedChats = analyzedChats.sort((a, b) => b.receivedMessages - a.receivedMessages);
 
   // Agrupamento por tipo
@@ -320,5 +287,3 @@ module.exports = {
   createDailySummary,
   generatePendingSummary,
 };
-
-
