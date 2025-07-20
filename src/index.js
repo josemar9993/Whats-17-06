@@ -52,7 +52,6 @@ global.whatsappClient = client;
 
 // Configurar Express server para health check e monitoramento
 const app = express();
-const PORT = process.env.PORT || 8080;
 
 // Middleware básico
 app.use(express.json());
@@ -105,11 +104,28 @@ app.get('/commands', (req, res) => {
   });
 });
 
-// Iniciar servidor Express
-app.listen(PORT, () => {
+// Iniciar o servidor Express
+const PORT = process.env.PORT || 8080;
+const server = app.listen(PORT, () => {
   logger.info(`Express server iniciado na porta ${PORT}`);
   logger.info(`Health check disponível em: http://localhost:${PORT}/health`);
   logger.info(`Status disponível em: http://localhost:${PORT}/status`);
+});
+
+// Garante um encerramento gracioso para liberar a porta
+process.on('SIGINT', () => {
+  logger.info('Recebido sinal SIGINT. Encerrando o servidor e o cliente...');
+  server.close(() => {
+    logger.info('Servidor Express encerrado.');
+    if (client && typeof client.destroy === 'function') {
+      client.destroy().then(() => {
+        logger.info('Cliente WhatsApp destruído.');
+        process.exit(0);
+      });
+    } else {
+      process.exit(0);
+    }
+  });
 });
 
 // Carregar comandos
