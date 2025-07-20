@@ -4,6 +4,8 @@
 const Sentiment = require('sentiment');
 const sentiment = new Sentiment();
 const removeAccents = require('remove-accents');
+const logger = require('./logger');
+const db = require('./database');
 
 const KEYWORD_THEMES = [
   {
