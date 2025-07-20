@@ -112,21 +112,54 @@ const server = app.listen(PORT, () => {
   logger.info(`Status disponível em: http://localhost:${PORT}/status`);
 });
 
-// Garante um encerramento gracioso para liberar a porta
-process.on('SIGINT', () => {
-  logger.info('Recebido sinal SIGINT. Encerrando o servidor e o cliente...');
+// --- LÓGICA DE ENCERRAMENTO GRACIOSO ---
+
+// Função para lidar com o encerramento
+const gracefulShutdown = (signal) => {
+  logger.info(`[SHUTDOWN] Recebido sinal ${signal}. Encerrando graciosamente...`);
+
+  // Define um tempo máximo para o encerramento
+  setTimeout(() => {
+    logger.error('[SHUTDOWN] Encerramento forçado após timeout.');
+    process.exit(1);
+  }, 10000); // 10 segundos de timeout
+
+  // 1. Fecha o servidor Express
   server.close(() => {
-    logger.info('Servidor Express encerrado.');
-    if (client && typeof client.destroy === 'function') {
-      client.destroy().then(() => {
-        logger.info('Cliente WhatsApp destruído.');
-        process.exit(0);
+    logger.info('[SHUTDOWN] Servidor Express encerrado.');
+
+    // 2. Destrói o cliente WhatsApp
+    const clientDestroyPromise = client && typeof client.destroy === 'function'
+      ? client.destroy()
+      : Promise.resolve();
+
+    clientDestroyPromise
+      .then(() => {
+        logger.info('[SHUTDOWN] Cliente WhatsApp destruído.');
+      })
+      .catch(err => {
+        logger.error('[SHUTDOWN] Erro ao destruir cliente WhatsApp:', err);
+      })
+      .finally(() => {
+        // 3. Fecha a conexão com o banco de dados
+        db.close((err) => {
+          if (err) {
+            logger.error('[SHUTDOWN] Erro ao fechar banco de dados:', err.message);
+          } else {
+            logger.info('[SHUTDOWN] Conexão com banco de dados fechada.');
+          }
+          // 4. Encerra o processo
+          logger.info('[SHUTDOWN] Processo encerrado com sucesso.');
+          process.exit(0);
+        });
       });
-    } else {
-      process.exit(0);
-    }
   });
-});
+};
+
+// Ouve os sinais de encerramento mais comuns
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+
 
 // Carregar comandos
 client.commands = new Map();
