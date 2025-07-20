@@ -25,6 +25,7 @@ module.exports = {
     node_args: '--max-old-space-size=1024',
     restart_delay: 1000,
     max_restarts: 10,
-    min_uptime: '10s'
+    min_uptime: '10s',
+    kill_timeout: 3000 // Adicionado para forçar o encerramento
   }]
 };
